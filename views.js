@@ -71,10 +71,24 @@ function table(headers, body, empty = "No hay registros para mostrar.") {
 }
 
 function actions(collection, id, editType = collection) {
-  return `<div class="row-actions">
-    <button data-edit="${editType}" data-id="${esc(id)}">Editar</button>
-    <button class="danger-link" data-delete="${collection}" data-id="${esc(id)}">Dar de baja</button>
-  </div>`;
+  const editButton =
+    '<button data-edit="' +
+    esc(editType) +
+    '" data-id="' +
+    esc(id) +
+    '">Editar</button>';
+
+  const deleteButton =
+    '<button class="danger-link" data-delete="' +
+    esc(collection) +
+    '" data-id="' +
+    esc(id) +
+    '">Dar de baja</button>';
+
+  return '<div class="row-actions">' +
+    editButton +
+    deleteButton +
+    '</div>';
 }
 
 export function renderDashboard(content, period) {
