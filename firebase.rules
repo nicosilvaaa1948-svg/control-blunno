@@ -1,0 +1,14 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    // Base segura para comenzar. Más adelante se pueden agregar roles
+    // por documento/claims sin exponer la base al público.
+    match /{document=**} {
+      allow read, write: if signedIn();
+    }
+  }
+}
