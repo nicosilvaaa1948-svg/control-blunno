@@ -1,0 +1,14 @@
+BLUNNO CONTROL EMPRESARIAL
+Versión: 2026.09.24-PRO
+Build: professional-control-v8
+
+Incluye:
+- perfiles por sucursal + General
+- control mensual
+- caja, proveedores, facturas, gastos, inversiones
+- personal, planilla de horas y liquidaciones
+- resultados y comparativas
+- recordatorios y Agente BLUNNO
+- cierre versionado + movimientos tardíos
+- archivos, auditoría y papelera
+- Excel / backup
