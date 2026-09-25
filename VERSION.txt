@@ -1,0 +1,5 @@
+BLUNNO CONTROL EMPRESARIAL
+Versión: V12 WEB
+Fecha: 2026-09-25
+Entrada publicada: app.js
+Modo: web estática + modo local

@@ -1,0 +1,13 @@
+BLUNNO CONTROL EMPRESARIAL V11 WEB
+Build check: PASS
+- Web browser-first: PASS
+- No manifest/service-worker/PWA markers in runtime files: PASS
+- JavaScript syntax: PASS
+- Local HTML references: PASS
+- Local module imports: PASS
+- Core business rules/tests: PASS
+- Native PDF engine: PASS (valid PDF 1.4, A4, text extraction)
+- Package structure: single project folder
+- Responsive web navigation: implemented
+- Netlify/GitHub Pages fallback: configured
+- Firebase credentials: intentionally blank until user configures the project
