@@ -1,0 +1,2012 @@
+/* BLUNNO CONTROL EMPRESARIAL · V17 ESTABLE WEB · bundled entry for GitHub Pages */
+const __BLUNNO_MODULES = Object.create(null);
+
+// ===== MODULE: config =====
+(() => {
+const CONFIG = {
+  companyName: "Distribuidora Blunno",
+  locale: "es-AR",
+  currency: "ARS",
+  defaultPeriod: "2026-09",
+  branches: ["Mendiolaza", "Bodereau", "Derqui", "Unquillo"],
+  profiles: ["Mendiolaza", "Bodereau", "Derqui", "Unquillo", "General"],
+  responsiblePeople: ["Agus", "Nico", "Luz", "Flor"],
+  expenseCategories: [
+    "Luz", "Alquiler", "Pinturería", "Refacciones", "Librería", "Agua",
+    "Limpieza", "Descartable", "Meriendas", "Retenciones Banco", "Retenciones",
+    "Desinfección", "Ferretería", "Otros gastos"
+  ],
+  cashIncomeConcepts: [
+    "Saldo día anterior", "Caja Mendiolaza", "Caja Bodereau", "Caja Unquillo", "Caja Derqui",
+    "Suarez", "Fer Maldonado", "Papá", "Juan", "Joa", "San Martín"
+  ],
+  cashExpenseConcepts: [
+    "Gastos de caja"
+  ],
+  cashPaymentConcepts: [
+    "Pagos"
+  ],
+  firebase: {
+    apiKey: "",
+    authDomain: "",
+    projectId: "",
+    storageBucket: "",
+    messagingSenderId: "",
+    appId: ""
+  }
+};
+
+const isFirebaseConfigured = () => Boolean(
+  CONFIG.firebase.apiKey && CONFIG.firebase.projectId && CONFIG.firebase.appId
+);
+
+const money = value => new Intl.NumberFormat(CONFIG.locale, {
+  style: "currency", currency: CONFIG.currency, minimumFractionDigits: 2, maximumFractionDigits: 2
+}).format(Number.isFinite(Number(value)) ? Number(value) : 0);
+
+const number = value => new Intl.NumberFormat(CONFIG.locale, {
+  maximumFractionDigits: 2
+}).format(Number(value || 0));
+
+const ARGENTINA_TZ = "America/Argentina/Buenos_Aires";
+const partsInArgentina = value => Object.fromEntries(new Intl.DateTimeFormat("en-CA", { timeZone: ARGENTINA_TZ, year:"numeric", month:"2-digit", day:"2-digit", hour:"2-digit", minute:"2-digit", second:"2-digit", hourCycle:"h23" }).formatToParts(value).filter(x=>x.type!=="literal").map(x=>[x.type,x.value]));
+const localDate = () => { const p=partsInArgentina(new Date()); return `${p.year}-${p.month}-${p.day}`; };
+const now = () => { const d=new Date(); return d.toISOString(); };
+const argentinaNowLabel = value => { if(!value) return "—"; const p=partsInArgentina(value?.toDate?value.toDate():new Date(value)); return Number(p.year)?`${p.day}/${p.month}/${p.year} ${p.hour}:${p.minute}`:"—"; }; 
+const today = localDate;
+const uid = () => crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+
+const dateLabel = value => {
+  if (!value) return "—";
+  const raw=String(value).slice(0,10);
+  const m=raw.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if(m) return `${m[3]}/${m[2]}/${m[1]}`;
+  const d = new Date(`${raw}T12:00:00Z`);
+  return Number.isNaN(d.getTime()) ? String(value) : d.toLocaleDateString(CONFIG.locale,{timeZone:ARGENTINA_TZ});
+};
+
+const dateTimeLabel = value => {
+  if (!value) return "—";
+  const d = value?.toDate ? value.toDate() : new Date(value);
+  if(Number.isNaN(d.getTime())) return String(value);
+  const p=partsInArgentina(d);
+  return `${p.day}/${p.month}/${p.year} ${p.hour}:${p.minute}`;
+};
+
+const periodLabel = period => {
+  const [y, m] = String(period).split("-").map(Number);
+  if (!y || !m) return period;
+  return new Date(y, m - 1, 1).toLocaleDateString(CONFIG.locale, { month: "long", year: "numeric" })
+    .replace(/^./, c => c.toUpperCase());
+};
+
+const nextPeriod = period => {
+  const [y, m] = period.split("-").map(Number);
+  return `${m === 12 ? y + 1 : y}-${String(m === 12 ? 1 : m + 1).padStart(2, "0")}`;
+};
+
+const prevPeriod = period => {
+  const [y, m] = period.split("-").map(Number);
+  return `${m === 1 ? y - 1 : y}-${String(m === 1 ? 12 : m - 1).padStart(2, "0")}`;
+};
+
+const daysInPeriod = period => {
+  const [y, m] = period.split("-").map(Number);
+  return new Date(y, m, 0).getDate();
+};
+
+const isoDate = (period, day) => `${period}-${String(day).padStart(2, "0")}`;
+
+__BLUNNO_MODULES.config = { CONFIG, isFirebaseConfigured, money, number, localDate, now, argentinaNowLabel, today, uid, dateLabel, dateTimeLabel, periodLabel, nextPeriod, prevPeriod, daysInPeriod, isoDate };
+})();
+
+// ===== MODULE: pdf =====
+(() => {
+const pdfWinAnsi = text => {
+  const map={"á":"\xE1","é":"\xE9","í":"\xED","ó":"\xF3","ú":"\xFA","ü":"\xFC","ñ":"\xF1","Á":"\xC1","É":"\xC9","Í":"\xCD","Ó":"\xD3","Ú":"\xDA","Ü":"\xDC","Ñ":"\xD1","¿":"\xBF","¡":"\xA1","€":"\x80"};
+  let out="";
+  for(const ch of String(text??"")){
+    const code=ch.charCodeAt(0);
+    if(map[ch]) out+=map[ch];
+    else if(code>=32 && code<=126) out+=ch;
+    else if(code<=255) out+=String.fromCharCode(code);
+    else out+="?";
+  }
+  return out;
+};
+const pdfEscape = text => pdfWinAnsi(text).replace(/\\/g,"\\\\").replace(/\(/g,"\\(").replace(/\)/g,"\\)").replace(/\r?\n/g," ");
+const pdfWrap = (text,maxChars=92) => {
+  const words=String(text??"").split(/\s+/); const lines=[]; let line="";
+  for(const word of words){
+    if(!line){line=word;continue;}
+    if((line+" "+word).length<=maxChars) line+=" "+word;
+    else{lines.push(line);line=word;}
+  }
+  if(line) lines.push(line);
+  return lines.length?lines:[""];
+};
+
+function createSimplePDF(title,subtitle,rows,footer=''){
+  const pageW=595.28,pageH=841.89,margin=42;
+  const pages=[];
+  const makeChunks=()=>{
+    const chunks=[]; let chunk=[]; let used=120;
+    for(const [a,b] of (Array.isArray(rows)?rows:[])){
+      const h=Math.max(pdfWrap(a,34).length,pdfWrap(b,64).length)*13+7;
+      if(chunk.length && used+h>700){chunks.push(chunk);chunk=[];used=120;}
+      chunk.push([String(a??''),String(b??'')]); used+=h;
+    }
+    if(chunk.length || !chunks.length) chunks.push(chunk);
+    return chunks;
+  };
+  const chunks=makeChunks();
+  for(const [pageIndex,chunk] of chunks.entries()){
+    const content=[]; let y=pageH-48;
+    content.push('0.91 0.93 0.96 rg 42 786 511 1 re f');
+    content.push(`/F2 17 Tf 0 0 0 rg 1 0 0 1 ${margin} ${y} Tm (${pdfEscape('DISTRIBUIDORA BLUNNO')}) Tj`); y-=22;
+    content.push(`/F2 12 Tf 0 g 1 0 0 1 ${margin} ${y} Tm (${pdfEscape(title)}) Tj`); y-=16;
+    for(const sub of pdfWrap(subtitle,105)){content.push(`/F1 9 Tf 0.25 g 1 0 0 1 ${margin} ${y} Tm (${pdfEscape(sub)}) Tj`);y-=12;}
+    content.push(`0.82 G 0.6 w ${margin} ${y+3} m ${pageW-margin} ${y+3} l S`); y-=16;
+    for(const [label,value] of chunk){
+      const labelLines=pdfWrap(label,34),valueLines=pdfWrap(value,64),h=Math.max(labelLines.length,valueLines.length)*13+7;
+      labelLines.forEach((t,j)=>content.push(`/F2 8.5 Tf 0.08 g 1 0 0 1 ${margin} ${y-j*13} Tm (${pdfEscape(t)}) Tj`));
+      valueLines.forEach((t,j)=>content.push(`/F1 8.5 Tf 0.18 g 1 0 0 1 ${margin+145} ${y-j*13} Tm (${pdfEscape(t)}) Tj`));
+      content.push(`0.92 G 0.35 w ${margin} ${y-h+3} m ${pageW-margin} ${y-h+3} l S`); y-=h;
+    }
+    if(pageIndex===chunks.length-1 && footer){if(y<90)y=90;for(const t of pdfWrap(footer,105)){content.push(`/F1 7 Tf 0.35 g 1 0 0 1 ${margin} ${y} Tm (${pdfEscape(t)}) Tj`);y-=10;}}
+    content.push(`0.82 G 0.4 w ${margin} 44 m ${pageW-margin} 44 l S`);
+    content.push(`/F1 7 Tf 0.4 g 1 0 0 1 ${margin} 30 Tm (${pdfEscape('Documento generado por Control Empresarial Blunno')}) Tj`);
+    content.push(`/F1 7 Tf 0.4 g 1 0 0 1 505 30 Tm (${pdfEscape(`Página ${pageIndex+1} de ${chunks.length}`)}) Tj`);
+    pages.push(content.join('\n'));
+  }
+  const objects=[]; const add=o=>{objects.push(o);return objects.length;};
+  const catalog=add(''),pagesObj=add(''),font=add('<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>'),boldFont=add('<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>');
+  const pageRecords=[];
+  for(const content of pages){const cid=add(`<< /Length ${content.length} >>\nstream\n${content}\nendstream`);const pid=add('');pageRecords.push({cid,pid});}
+  objects[catalog-1]=`<< /Type /Catalog /Pages ${pagesObj} 0 R >>`;
+  objects[pagesObj-1]=`<< /Type /Pages /Kids [${pageRecords.map(r=>r.pid+' 0 R').join(' ')}] /Count ${pageRecords.length} >>`;
+  for(const r of pageRecords) objects[r.pid-1]=`<< /Type /Page /Parent ${pagesObj} 0 R /MediaBox [0 0 ${pageW} ${pageH}] /Resources << /Font << /F1 ${font} 0 R /F2 ${boldFont} 0 R >> >> /Contents ${r.cid} 0 R >>`;
+  let pdf='%PDF-1.4\n%\xE2\xE3\xCF\xD3\n'; const offsets=[0];
+  for(let i=0;i<objects.length;i++){offsets.push(pdf.length);pdf+=`${i+1} 0 obj\n${objects[i]}\nendobj\n`;}
+  const xref=pdf.length; pdf+=`xref\n0 ${objects.length+1}\n0000000000 65535 f \n`; for(let i=1;i<offsets.length;i++)pdf+=String(offsets[i]).padStart(10,'0')+' 00000 n \n';
+  pdf+=`trailer\n<< /Size ${objects.length+1} /Root ${catalog} 0 R >>\nstartxref\n${xref}\n%%EOF`;
+  const bytes=new Uint8Array(pdf.length); for(let i=0;i<pdf.length;i++)bytes[i]=pdf.charCodeAt(i)&255;
+  return new Blob([bytes],{type:'application/pdf'});
+}
+
+__BLUNNO_MODULES.pdf = { createSimplePDF };
+})();
+
+// ===== MODULE: firebase =====
+(() => {
+const { CONFIG, isFirebaseConfigured } = __BLUNNO_MODULES.config;
+
+let auth = null, db = null, storage = null;
+let initialized = false;
+let initPromise = null;
+
+let firebaseAuth = null;
+let firebaseDb = null;
+let firebaseStorage = null;
+const firebaseEnabled = isFirebaseConfigured();
+
+async function ensureFirebase() {
+  if (!firebaseEnabled) return false;
+  if (initialized) return true;
+  if (!initPromise) {
+    initPromise = (async () => {
+      const [{ initializeApp }, authMod, firestoreMod, storageMod] = await Promise.all([
+        import("https://www.gstatic.com/firebasejs/12.3.0/firebase-app.js"),
+        import("https://www.gstatic.com/firebasejs/12.3.0/firebase-auth.js"),
+        import("https://www.gstatic.com/firebasejs/12.3.0/firebase-firestore.js"),
+        import("https://www.gstatic.com/firebasejs/12.3.0/firebase-storage.js")
+      ]);
+      const app = initializeApp(CONFIG.firebase);
+      auth = authMod.getAuth(app);
+      db = firestoreMod.getFirestore(app);
+      storage = storageMod.getStorage(app);
+      firebaseAuth = auth;
+      firebaseDb = db;
+      firebaseStorage = storage;
+      initialized = true;
+      return true;
+    })().catch(err => { initPromise = null; throw err; });
+  }
+  return initPromise;
+}
+
+const authState = async cb => {
+  if (!firebaseEnabled) return cb(null);
+  try {
+    await ensureFirebase();
+    return (await import("https://www.gstatic.com/firebasejs/12.3.0/firebase-auth.js")).onAuthStateChanged(auth, cb);
+  } catch { return cb(null); }
+};
+const login = async (email, password) => {
+  if (!firebaseEnabled) throw new Error("Firebase no está configurado.");
+  await ensureFirebase();
+  const { signInWithEmailAndPassword } = await import("https://www.gstatic.com/firebasejs/12.3.0/firebase-auth.js");
+  return signInWithEmailAndPassword(auth, email, password);
+};
+const logout = async () => {
+  if (!firebaseEnabled) return;
+  await ensureFirebase();
+  const { signOut } = await import("https://www.gstatic.com/firebasejs/12.3.0/firebase-auth.js");
+  return signOut(auth);
+};
+
+const clean = o => Object.fromEntries(Object.entries(o).filter(([, v]) => v !== undefined));
+const fs = async () => { await ensureFirebase(); return import("https://www.gstatic.com/firebasejs/12.3.0/firebase-firestore.js"); };
+const BRANCH_SCOPED = new Set(["cash","hours","invoices","expenses","investments","employeeDebts","liquidations","tasks","closures","files","incomes","employees","imports"]);
+async function accessClaims(){
+  if(!auth?.currentUser) return {all:false,branches:[]};
+  try{
+    const token=(await auth.currentUser.getIdTokenResult()).claims||{};
+    if(token.role==='admin'||token.role==='general') return {all:true,branches:[]};
+    const branches=new Set();
+    if(typeof token.branchId==='string'&&token.branchId) branches.add(token.branchId);
+    if(token.branchIds&&typeof token.branchIds==='object') Object.keys(token.branchIds).forEach(k=>{if(token.branchIds[k])branches.add(k)});
+    return {all:false,branches:[...branches].slice(0,30)};
+  }catch{return {all:false,branches:[]};}
+}
+
+async function remoteList(name, period = null) {
+  if (!firebaseEnabled) return [];
+  await ensureFirebase(); const { collection, getDocs, query, where } = await fs();
+  const refCol = collection(db, name);
+  const clauses=[];
+  if(period && ["cash","hours","invoices","expenses","investments","employeeDebts","liquidations","tasks","closures","incomes","imports"].includes(name)) clauses.push(where("period","==",period));
+  if(BRANCH_SCOPED.has(name)){
+    const access=await accessClaims();
+    if(!access.all){
+      if(!access.branches.length) throw new Error("La cuenta Firebase no tiene sucursal asignada.");
+      clauses.push(where("branchId",access.branches.length===1?"==":"in",access.branches.length===1?access.branches[0]:access.branches));
+    }
+  }
+  const q=clauses.length?query(refCol,...clauses):refCol;
+  const snap=await getDocs(q); return snap.docs.map(d=>({id:d.id,...d.data()}));
+}
+async function remoteGet(name,id){if(!firebaseEnabled)return null;await ensureFirebase();const {doc,getDoc}=await fs();const snap=await getDoc(doc(db,name,id));return snap.exists()?{id:snap.id,...snap.data()}:null;}
+async function remoteAdd(name,data,id=null){if(!firebaseEnabled)throw new Error("Firebase no está configurado.");await ensureFirebase();const {collection,doc,setDoc,addDoc,serverTimestamp}=await fs();const payload=clean({...data,createdAt:serverTimestamp(),updatedAt:serverTimestamp()});if(id){await setDoc(doc(db,name,id),payload,{merge:true});return{id,...data};}const r=await addDoc(collection(db,name),payload);return{id:r.id,...data};}
+async function remoteUpdate(name,id,data){if(!firebaseEnabled)throw new Error("Firebase no está configurado.");await ensureFirebase();const {doc,updateDoc,serverTimestamp}=await fs();await updateDoc(doc(db,name,id),clean({...data,updatedAt:serverTimestamp()}));return{id,...data};}
+async function remotePurge(name,id){if(!firebaseEnabled)throw new Error("Firebase no está configurado.");await ensureFirebase();const {doc,deleteDoc,getDoc}=await fs();const refDoc=doc(db,name,id);const snap=await getDoc(refDoc);if(name==="files"&&snap.exists()&&snap.data().storagePath){try{const {ref,deleteObject}=await import("https://www.gstatic.com/firebasejs/12.3.0/firebase-storage.js");await deleteObject(ref(storage,snap.data().storagePath));}catch(e){console.warn("Storage purge",e)}}await deleteDoc(refDoc);}
+async function remoteDelete(name,id){if(!firebaseEnabled)throw new Error("Firebase no está configurado.");await ensureFirebase();const {doc,updateDoc,serverTimestamp}=await fs();await updateDoc(doc(db,name,id),{deleted:true,deletedAt:serverTimestamp(),updatedAt:serverTimestamp()});}
+async function remoteAudit(data){if(!firebaseEnabled)return;await ensureFirebase();const {addDoc,collection,serverTimestamp}=await fs();await addDoc(collection(db,"audit"),clean({...data,createdAt:serverTimestamp()}));}
+async function uploadFile(path,blob,contentType){if(!firebaseEnabled)return null;await ensureFirebase();const {ref,uploadBytes,getDownloadURL}=await import("https://www.gstatic.com/firebasejs/12.3.0/firebase-storage.js");const r=ref(storage,path);await uploadBytes(r,blob,{contentType:contentType||blob.type||"application/octet-stream"});return getDownloadURL(r);}
+async function remoteBatchSet(rows){if(!firebaseEnabled)throw new Error("Firebase no está configurado.");await ensureFirebase();const {writeBatch,doc,serverTimestamp}=await fs();const b=writeBatch(db);rows.forEach(r=>b.set(doc(db,r.name,r.id),clean({...r.data,updatedAt:serverTimestamp()}),{merge:true}));await b.commit();}
+
+__BLUNNO_MODULES.firebase = { get firebaseAuth(){ return firebaseAuth; }, get firebaseDb(){ return firebaseDb; }, get firebaseStorage(){ return firebaseStorage; }, firebaseEnabled, authState, login, logout, remoteList, remoteGet, remoteAdd, remoteUpdate, remotePurge, remoteDelete, remoteAudit, uploadFile, remoteBatchSet };
+})();
+
+// ===== MODULE: store =====
+(() => {
+const { CONFIG, uid, isFirebaseConfigured, today, now, nextPeriod } = __BLUNNO_MODULES.config;
+const { remoteList, remoteAdd, remoteUpdate, remoteDelete, remotePurge, remoteAudit } = __BLUNNO_MODULES.firebase;
+
+const KEY = "blunno-control-v13-final";
+const collections = [
+  "periods", "providers", "incomes", "invoices", "cash", "expenses", "investments", "employees", "hours",
+  "employeeDebts", "liquidations", "tasks", "closures", "files", "imports", "audit", "settings", "agentChats"
+];
+const providerSeeds = [
+  "611 LOGISTICA",
+  "ACCESORIOS (CELULAR)",
+  "ALFAJORES MAICENA",
+  "ALIMENTAR",
+  "ALITAS",
+  "BAUTOM",
+  "BETTINI",
+  "BIMBO",
+  "CAMPI",
+  "CERDO (MARIANO)",
+  "CEREALES",
+  "CIGARILLOS",
+  "COCA COLA",
+  "CONDIMENTOS",
+  "CORDERO , TORTILLA , CASEROS",
+  "Cordoba Drinks",
+  "DOS HERMANOS  (MDM)",
+  "EL CLUB DEL 29",
+  "EMPANADAS",
+  "FERMAR",
+  "FERRERO ROCHER",
+  "FIT NUT SAS",
+  "FLOR PEÑA",
+  "GALANA",
+  "GARRAPIÑADAS",
+  "GOLOSINAS",
+  "HIELO",
+  "HUEVOS",
+  "HUMO (TABACO & SUPLEMENTS)",
+  "il molinos",
+  "INTEGRALL (ARCOR)",
+  "L Y L",
+  "LAYS",
+  "loto granolas",
+  "MI MAGO (Distri. CACCIA BERNHARD)",
+  "MIGA /PEBETE",
+  "MINIMARKET MENDIOLAZA",
+  "MOLINOS",
+  "MS. FERNANDEZ",
+  "PAN CASERO",
+  "PAN DE CAMPO",
+  "PAN RALLADO",
+  "PANADERO (pdf)",
+  "PANDERO (PDF 2)",
+  "PANZ (DAMIAN)",
+  "POLLO (mariano)",
+  "QUIPAR S.R.L",
+  "SAN BACHA",
+  "SAN PABLO",
+  "SANTA CRUZ",
+  "SECCO",
+  "SIMPLE",
+  "TANTE",
+  "TREMBLAY",
+  "VAFOOD S.R.L",
+  "VCC365 S.A",
+  "VENDEDOR S.R.L",
+  "VERDURAS LOS 5 HERMANOS",
+  "VILLA ALLENDE",
+  "AGUILERA",
+  "Argentina",
+  "ATUN (SEÑOR RARO)",
+  "B-Burger",
+  "BACHA",
+  "Bordon Gabriel Eduardo (BAGGIO)",
+  "Cap",
+  "CELESTIAL",
+  "CIGARILLOS (DISTRIBUIDORA DE TODO)",
+  "CONGELADOS (MERLUZA - MILANESAS-POLLO)",
+  "CONGELADOS (POLLO)",
+  "Corpel",
+  "Cremac",
+  "Danal",
+  "Danal Pasta",
+  "Distribuidora (DUL-C.E.S)",
+  "Distribuidora Gaitan",
+  "DOBLE COLA / PRITTY",
+  "DON ADOLFO",
+  "DON PANIFICADO (MÁS Q´ PANNE)",
+  "EMPANADAS (CONGELADAS)",
+  "FINCA SANTIAGO",
+  "Fit Nut SAS (nestle)",
+  "GALLETAS SURTIDAS",
+  "GEM",
+  "INTEGRAL (ARCOR)",
+  "L.Y.L",
+  "LA CASERITA",
+  "MARTIN NOGUEZ",
+  "Mayorista (YAGUAR)",
+  "MDM",
+  "Mercado De Especias",
+  "NEVARES",
+  "NEW FEL (FELPITA)",
+  "OLIVI HERMANOS",
+  "PAN (PDF)",
+  "PAN MIGA",
+  "PIZZAS SALVADOR",
+  "QUINTA GENERACION (GROSSO)",
+  "QUIPAR SRL",
+  "Rutas Comerciales ( DEL VALLE)",
+  "RyE",
+  "SAL DE CAMPO",
+  "SALSAS",
+  "SAN ALFONSO",
+  "San Jose",
+  "Severina (tarquino)",
+  "Simple (TREGAR)",
+  "Stoecklin Bebidas S.R.L ( COCA COLA)",
+  "SUIPA",
+  "VenezziANA",
+  "WINDY",
+  "WINDY (2)",
+  "yerbas (mismo remito que golosina)",
+  "Argentina Distri.",
+  "BALLCHOC",
+  "BOCADITOS (MARROC)",
+  "C.C.U",
+  "Don Yeyo (Vendedor S.R.L)",
+  "EMPANADAS (NICO)",
+  "Golosina",
+  "HUMO (tabaco -suplement)",
+  "Ilarina.Integral",
+  "Maru (Empanadas)",
+  "MÁS Q´ PANNE",
+  "Migas",
+  "PIZZAS CONGELADAS",
+  "ROSBOC",
+  "SÓJITAS",
+  "TABACO + PIZZAS CONGELADAS",
+  "Terrabusi (Quipar S.R.L)",
+  "Textiles (TANTES)",
+  "Veneziana",
+  "VILLA ALLENDE ( bodereau)",
+  "VINOS (NO SE SABE)",
+  "BENJAMIN",
+  "Caserita",
+  "Doble cola",
+  "El Molino",
+  "Ilarina Integral",
+  "PANES (PANZ)",
+  "Pastelitos",
+  "Salvador Pizza",
+  "Sorrentino (Ivan)",
+  "Tregar",
+  "Vendor S.R.L",
+  "LAURA",
+];
+
+
+const empty = () => Object.fromEntries(collections.map(c => [c, []]));
+const seed = () => {
+  const s = empty();
+  s.periods.push({ id: CONFIG.defaultPeriod, status: "open", name: CONFIG.defaultPeriod, createdAt: now() });
+  s.incomes = [];
+  providerSeeds.forEach(name => s.providers.push({ id: uid(), name, active: true, master: true, status:"active", deleted:false, createdBy:"Sistema", createdAt: now(), updatedAt: now() }));
+  s.settings.push({ id: "ui", branch: "General", responsible: "", period: CONFIG.defaultPeriod });
+  return s;
+};
+
+const providerKey = value => {
+  return String(value || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/\s+/g, " ").trim();
+};
+const ensureProviderCatalog = data => {
+  const providers = Array.isArray(data.providers) ? data.providers : [];
+  const seen = new Map();
+  const cleaned = [];
+  for (const row of providers) {
+    const key = providerKey(row.name);
+    if (!key) continue;
+    if (seen.has(key)) continue;
+    seen.set(key, true);
+    cleaned.push(row);
+  }
+  const existingKeys = new Set(cleaned.map(x => providerKey(x.name)));
+  for (const name of providerSeeds) {
+    const key = providerKey(name);
+    if (!existingKeys.has(key)) {
+      cleaned.push({ id: uid(), name, active: true, master: true, status:"active", deleted:false, createdBy:"Sistema", createdAt: now(), updatedAt: now() });
+      existingKeys.add(key);
+    }
+  }
+  data.providers = cleaned;
+  return data;
+};
+
+let state = load();
+function load() {
+  try {
+    const raw = localStorage.getItem(KEY);
+    if (!raw) return seed();
+    const parsed = JSON.parse(raw);
+    let merged = { ...empty(), ...parsed };
+    merged = ensureProviderCatalog(merged);
+    if (!merged.periods.length) merged.periods = seed().periods;
+    if (!merged.providers.length) merged.providers = seed().providers;
+    // V10 comienza limpia para no arrastrar movimientos de prueba de versiones anteriores.
+    merged.employees = merged.employees
+      .filter(e => !(e.createdBy === "Sistema" && e.master === true))
+      .map(e => ({...e, branchId: e.branchId || e.branch || null}));
+    localStorage.setItem(KEY, JSON.stringify(merged));
+    return merged;
+  } catch { return seed(); }
+}
+const persist = () => localStorage.setItem(KEY, JSON.stringify(state));
+const active = name => (state[name] || []).filter(x => !x.deleted);
+const purgeExpiredTrash = () => {
+  const cutoff = Date.now() - 30 * 24 * 60 * 60 * 1000;
+  let changed = false;
+  for (const n of collections) {
+    const before = state[n] || [];
+    const keep = before.filter(x => {
+      if (!x.deleted) return true;
+      const rawDate = x.deletedAt?.toDate ? x.deletedAt.toDate() : x.deletedAt;
+      const t = new Date(rawDate || 0).getTime();
+      if (t && t <= cutoff) {
+        changed = true;
+        const at = now();
+        const time = auditTime(at);
+        state.audit.unshift({ id: uid(), action:"AUTO_PURGE", collection:n, recordId:x.id, before:x, after:null, responsible:"Sistema", actor:"Sistema", at, date:time.date, hour:time.hour, minute:time.minute, sector:sectorForCollection(n), branch:x.branch ?? null, period:x.period ?? null, reason:"Purga automática de papelera después de 30 días" });
+        return false;
+      }
+      return true;
+    });
+    state[n] = keep;
+  }
+  if (changed) persist();
+  return changed;
+};
+purgeExpiredTrash();
+setInterval(purgeExpiredTrash, 60 * 60 * 1000);
+
+const VAULT_DB = "blunno-file-vault-v1";
+const openVault = () => new Promise((resolve,reject)=>{ const req=indexedDB.open(VAULT_DB,1); req.onupgradeneeded=()=>{ if(!req.result.objectStoreNames.contains("blobs")) req.result.createObjectStore("blobs"); }; req.onsuccess=()=>resolve(req.result); req.onerror=()=>reject(req.error); });
+const vaultPut = async (key,blob) => { const db=await openVault(); return new Promise((resolve,reject)=>{ const tx=db.transaction("blobs","readwrite"); tx.objectStore("blobs").put(blob,key); tx.oncomplete=()=>{db.close();resolve()}; tx.onerror=()=>{db.close();reject(tx.error)}; }); };
+const vaultGet = async key => { const db=await openVault(); return new Promise((resolve,reject)=>{ const tx=db.transaction("blobs","readonly"); const req=tx.objectStore("blobs").get(key); req.onsuccess=()=>{db.close();resolve(req.result||null)}; req.onerror=()=>{db.close();reject(req.error)}; }); };
+const vaultDelete = async key => { try{const db=await openVault();return new Promise((resolve,reject)=>{const tx=db.transaction("blobs","readwrite");tx.objectStore("blobs").delete(key);tx.oncomplete=()=>{db.close();resolve()};tx.onerror=()=>{db.close();reject(tx.error)}})}catch{} };
+
+const actor = () => __BLUNNO_MODULES.firebase.firebaseAuth?.currentUser?.email || window.__blunnoResponsible || "Usuario local";
+const periodIsClosed = (p, branch="General") => state.closures.some(x => x.period === p && x.branch === branch && x.status === "closed");
+const assertResponsible = name => {
+  const value = String(name || "").trim();
+  if (!value) throw new Error("Seleccioná el responsable antes de guardar.");
+  if (!CONFIG.responsiblePeople.includes(value)) throw new Error("El responsable no es válido. Elegí Agus, Nico, Luz o Flor.");
+};
+const branchMatches = (row, branch) => !branch || branch === "General" || row.branch === branch;
+
+const movementCollections = new Set(["incomes","invoices","cash","expenses","investments","hours","employeeDebts","liquidations","closures"]);
+const concreteBranches = new Set(CONFIG.branches);
+const isValidPeriod = value => /^\d{4}-(0[1-9]|1[0-2])$/.test(String(value || ""));
+const validDate = value => {
+  const raw=String(value||"");
+  const m=raw.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if(!m) return false;
+  const y=Number(m[1]),mo=Number(m[2]),d=Number(m[3]);
+  const dt=new Date(y,mo-1,d,12,0,0);
+  return dt.getFullYear()===y && dt.getMonth()===mo-1 && dt.getDate()===d;
+};
+const sourceIdentity = value => String(value || "").trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g," ");
+const validResponsible = name => CONFIG.responsiblePeople.includes(String(name || "").trim());
+const validBranch = name => concreteBranches.has(String(name || ""));
+const ensureProviderExists = providerName => {
+  const key = sourceIdentity(providerName);
+  if (!key) throw new Error("La factura necesita un proveedor.");
+  const provider = active("providers").find(x => sourceIdentity(x.name) === key);
+  if (!provider) throw new Error("El proveedor no existe en el maestro. Crealo primero desde Proveedores.");
+  return provider;
+};
+const auditTime = value => {
+  const d = new Date(value);
+  const parts = new Intl.DateTimeFormat("en-CA", {timeZone:"America/Argentina/Buenos_Aires",year:"numeric",month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit",hourCycle:"h23"}).formatToParts(d).filter(x=>x.type!=="literal");
+  const map = Object.fromEntries(parts.map(x=>[x.type,x.value]));
+  return {date:`${map.year}-${map.month}-${map.day}`,hour:map.hour,minute:map.minute};
+};
+const sectorForCollection = collection => ({incomes:"Ingresos",invoices:"Facturas",cash:"Caja",expenses:"Gastos",investments:"Inversiones",employees:"Personal",hours:"Horas",employeeDebts:"Personal",liquidations:"Liquidaciones",tasks:"Recordatorios",closures:"Cierre mensual",providers:"Proveedores",files:"Archivos",audit:"Auditoría",settings:"Configuración",imports:"Importación",agentChats:"Agente BLUNNO"}[collection] || collection);
+const validateRecord = (collection, data, editingId = null) => {
+  const row = data || {};
+  if (movementCollections.has(collection) && row.period && !isValidPeriod(row.period)) throw new Error("El período no es válido.");
+  for (const k of ["date","operationDate"]) if (row[k] && !validDate(String(row[k]).slice(0,10))) throw new Error(`La fecha de ${k === "operationDate" ? "la factura" : "movimiento"} no es válida.`);
+  if (["incomes","invoices","cash","expenses","investments","hours","employeeDebts","liquidations"].includes(collection) && !validBranch(row.branch)) throw new Error("Seleccioná una sucursal concreta. General es solo una vista consolidada.");
+  if (collection === "providers") {
+    const name = sourceIdentity(row.name); if (!name) throw new Error("Ingresá el nombre del proveedor.");
+    const duplicate = active("providers").find(x => x.id !== editingId && sourceIdentity(x.name) === name);
+    if (duplicate) throw new Error(`El proveedor ${duplicate.name} ya existe. No se creó un duplicado.`);
+  }
+  if (collection === "invoices") {
+    if (!row.provider) throw new Error("La factura necesita un proveedor.");
+    ensureProviderExists(row.provider);
+    if (!row.operationDate || !validDate(String(row.operationDate).slice(0,10))) throw new Error("Ingresá una fecha válida para la factura.");
+    if (!Number.isFinite(Number(row.amount)) || Number(row.amount) < 0) throw new Error("Ingresá un importe válido para la factura.");
+    row.status = "CARGADA";
+    row.period = String(row.operationDate).slice(0,7);
+  }
+  if (["incomes","expenses","investments"].includes(collection) && (!Number.isFinite(Number(row.amount)) || Number(row.amount) < 0)) throw new Error("Ingresá un importe válido.");
+  if (collection === "cash" && (!Number.isFinite(Number(row.amount)) || Number(row.amount) < 0)) throw new Error("Ingresá un importe de caja válido.");
+  if (collection === "employees") { if (!String(row.name || "").trim()) throw new Error("Ingresá el nombre del empleado."); if (!validBranch(row.branch)) throw new Error("El empleado debe tener una sucursal concreta."); }
+  if (collection === "hours") {
+    if (!row.employeeId) throw new Error("Seleccioná un empleado válido.");
+    const emp=active("employees").find(x=>x.id===row.employeeId);
+    if(!emp) throw new Error("El empleado seleccionado no existe.");
+    if(!validBranch(row.branch) || emp.branch!==row.branch) throw new Error("Las horas deben pertenecer a la misma sucursal del empleado.");
+    if (!row.date || !validDate(row.date)) throw new Error("Ingresá una fecha válida.");
+    const hv=String(row.displayValue||""); if (hv && /^(f|franco)$/i.test(hv)) row.status="franco";
+  }
+  if (collection === "employeeDebts" || collection === "liquidations") {
+    if(row.employeeId){
+      const emp=active("employees").find(x=>x.id===row.employeeId);
+      if(!emp) throw new Error("El empleado seleccionado no existe.");
+      if(row.branch!==emp.branch) throw new Error("El registro de personal debe pertenecer a la sucursal del empleado.");
+    }
+  }
+  if (collection === "tasks") { if (!String(row.title||"").trim()) throw new Error("Ingresá el título del recordatorio."); if (row.responsible && !validResponsible(row.responsible)) throw new Error("El responsable del recordatorio no es válido."); }
+};
+const decorate = (data, responsible, status="active", id=null) => ({
+  ...(id ? { id } : {}),
+  ...data,
+  responsible,
+  createdBy: data.createdBy || responsible,
+  branchId: data.branchId || data.branch || null,
+  periodId: data.periodId || data.period || null,
+  status: data.status || status,
+  deleted: false,
+  createdAt: data.createdAt || now(),
+  updatedAt: now()
+});
+
+
+async function audit(action, collection, id, before, after, responsible, reason, meta = {}) {
+  const at = now();
+  const source = after || before || {};
+  const t = auditTime(at);
+  const row = {
+    id: uid(), action, collection, recordId: id,
+    before: before || null, after: after || null,
+    responsible: responsible || actor(), actor: actor(), at,
+    date: t.date, hour: t.hour, minute: t.minute,
+    sector: meta.sector || sectorForCollection(collection),
+    branch: meta.branch ?? source.branch ?? null,
+    period: meta.period ?? source.period ?? null,
+    reason: reason || "",
+    ...meta
+  };
+  state.audit.unshift(row); persist();
+  if (isFirebaseConfigured()) await remoteAudit(row);
+  return row;
+}
+async function syncRemote() {
+  if (!isFirebaseConfigured()) return;
+  for (const n of collections) {
+    try {
+      const rows = await remoteList(n);
+      if (rows.length || n === "periods") state[n] = rows;
+    } catch (e) { console.warn("Sync", n, e); }
+  }
+  if (!state.periods.length) state.periods = seed().periods;
+  persist();
+}
+
+function assertOpen(data, allowLate = false) {
+  if (data?.period && periodIsClosed(data.period, data.branch || "General") && !allowLate) throw new Error("El período está cerrado para esta sucursal. Para un movimiento tardío activá la opción correspondiente.");
+}
+
+const Store = {
+  get mode() { return isFirebaseConfigured() ? "firebase" : "local"; },
+  get db() { return state; },
+  list(name, period = null, branch = null) {
+    let rows = active(name);
+    if (period && ["incomes", "cash", "hours", "invoices", "expenses", "investments", "employeeDebts", "liquidations", "tasks", "closures"].includes(name)) rows = rows.filter(x => x.period === period);
+    if (branch && branch !== "General") rows = rows.filter(x => branchMatches(x, branch));
+    return rows;
+  },
+  trash(name = null) {
+    purgeExpiredTrash();
+    const names = name ? [name] : collections;
+    return names.flatMap(n => (state[n] || []).filter(x => x.deleted).map(x => ({ ...x, _collection: n })));
+  },
+  async purgeTrashItem(name, id, responsible, reason = "Eliminación definitiva") {
+    assertResponsible(responsible);
+    const old = this.getRaw(name, id);
+    if (!old || !old.deleted) throw new Error("El registro no se encuentra en la papelera.");
+    state[name] = state[name].filter(x => x.id !== id);
+    if(name === "files" && old.vaultKey) await vaultDelete(old.vaultKey);
+    persist();
+    if (isFirebaseConfigured()) await remotePurge(name, id);
+    await audit("PURGE", name, id, old, null, responsible, reason);
+  },
+  async purgeTrashMany(items, responsible) {
+    assertResponsible(responsible);
+    for (const item of items) await this.purgeTrashItem(item.collection || item._collection, item.id, responsible, "Eliminación definitiva seleccionada");
+  },
+  async restoreMany(items, responsible) {
+    assertResponsible(responsible);
+    for (const item of items) await this.restore(item.collection || item._collection, item.id, responsible);
+  },
+  get(name, id) { return (state[name] || []).find(x => x.id === id && !x.deleted) || null; },
+  getRaw(name, id) { return (state[name] || []).find(x => x.id === id) || null; },
+  periodIsClosed,
+  setPeriod(p) {
+    if (!/^\d{4}-\d{2}$/.test(p)) throw new Error("Período inválido.");
+    if (!state.periods.some(x => x.id === p)) { state.periods.push({ id: p, status: "open", name: p, createdAt: now() }); persist(); }
+  },
+  async add(name, data, responsible, reason = "Alta manual", options = {}) {
+    assertResponsible(responsible);
+    const payload = {...(data || {})};
+    validateRecord(name, payload);
+    if(!["files","audit","closures","settings","agentChats"].includes(name)) assertOpen(payload, options.lateMovement);
+    if (name === "hours") payload.period = payload.period || String(payload.date).slice(0,7);
+    const id = uid();
+    const row = decorate(payload, responsible, name === "tasks" ? (payload.status || "pending") : "active", id);
+    if (!state[name]) state[name] = [];
+    const wasClosed = !!(payload?.period && periodIsClosed(payload.period, payload.branch || "General"));
+    state[name].unshift(row); persist();
+    if (isFirebaseConfigured()) await remoteAdd(name, row, id);
+    await audit(options.lateMovement ? "CREATE_LATE" : "CREATE", name, id, null, row, responsible, reason, { lateMovement: !!options.lateMovement });
+    if (options.lateMovement && wasClosed && payload?.period) await this.createClosureVersion(payload.period, payload.branch || "General", responsible, `Actualización por movimiento tardío en ${name}.`);
+    return row;
+  },
+  async update(name, id, patch, responsible, reason = "Edición manual", options = {}) {
+    assertResponsible(responsible);
+    const old = this.get(name, id); if (!old) throw new Error("No se encontró el registro.");
+    const row = {...old, ...(patch || {}), responsible, updatedAt: now()};
+    validateRecord(name, row, id);
+    const wasClosed = !!(old.period && periodIsClosed(old.period, old.branch || "General"));
+    if(!["files","audit","closures","settings","agentChats"].includes(name)) assertOpen(old, options.lateMovement);
+    state[name] = state[name].map(x => x.id === id ? row : x); persist();
+    if (isFirebaseConfigured()) await remoteUpdate(name, id, patch || {});
+    await audit(options.lateMovement ? "UPDATE_LATE" : "UPDATE", name, id, old, row, responsible, reason, { lateMovement: !!options.lateMovement });
+    if (options.lateMovement && wasClosed && row.period) await this.createClosureVersion(row.period, row.branch || "General", responsible, `Actualización por corrección posterior en ${name}.`);
+    return row;
+  },
+  async remove(name, id, responsible, reason = "Baja lógica", options = {}) {
+    assertResponsible(responsible);
+    if (name === "audit") throw new Error("La auditoría es permanente y no puede eliminarse.");
+    const old = this.get(name, id); if (!old) return;
+    if(!["files","closures","settings","agentChats"].includes(name)) assertOpen(old, options.lateMovement);
+    const row = {...old, deleted: true, status: "deleted", deletedAt: now(), updatedAt: now(), responsible};
+    state[name] = state[name].map(x => x.id === id ? row : x); persist();
+    if (isFirebaseConfigured()) await remoteDelete(name, id);
+    await audit("DELETE", name, id, old, row, responsible, reason);
+  },
+  async restore(name, id, responsible) {
+    assertResponsible(responsible);
+    if (name === "audit") throw new Error("La auditoría es permanente y no puede restaurarse ni eliminarse.");
+    const old = this.getRaw(name, id); if (!old) return;
+    const row = {...old, deleted: false, status: name === "invoices" ? "CARGADA" : (old.status === "deleted" ? "active" : old.status), restoredAt: now(), updatedAt: now(), responsible}; state[name] = state[name].map(x => x.id === id ? row : x); persist();
+    if (isFirebaseConfigured()) await remoteUpdate(name, id, {deleted: false, status: row.status, restoredAt: row.restoredAt});
+    await audit("RESTORE", name, id, old, row, responsible, "Recuperación desde papelera");
+    if(old.period && old.branch && periodIsClosed(old.period, old.branch) && !["providers","audit","files","closures","settings","agentChats"].includes(name)) {
+      await this.createClosureVersion(old.period, old.branch, responsible, `Nueva versión por restauración de ${sectorForCollection(name)}.`);
+    }
+  },
+  async addLateMovement(name, data, responsible, reason) { return this.add(name, data, responsible, reason || "Movimiento tardío de período cerrado", { lateMovement: true }); },
+  async upsertBySource(name, sourceKey, data, responsible, reason = "Sincronización Excel") {
+    assertResponsible(responsible);
+    const found = active(name).find(x => x.sourceKey === sourceKey);
+    return found ? this.update(name, found.id, data, responsible, reason, { lateMovement: periodIsClosed(data.period, data.branch || "General") }) : this.add(name, {...data, sourceKey}, responsible, reason, { lateMovement: periodIsClosed(data.period, data.branch || "General") });
+  },
+  async createClosureVersion(period, branch, responsible, observations = "") {
+    const previous = state.closures.filter(x=>x.period===period&&x.branch===branch&&x.status==="closed").sort((a,b)=>Number(b.version||0)-Number(a.version||0))[0];
+    if (!previous) return null;
+    const version = Number(previous.version||1)+1;
+    state.closures = state.closures.map(x=>x.id===previous.id?{...x,status:"superseded",supersededAt:now(),supersededBy:responsible}:x);
+    const updated={id:uid(),period,version,branch,responsible,closedAt:now(),summary:this.summary(period,branch),observations:String(observations||""),status:"closed",previousVersion:previous.version,createdAt:now(),updatedAt:now(),createdBy:responsible,branchId:branch,periodId:period};
+    state.closures.unshift(updated); persist();
+    if(isFirebaseConfigured()) { await remoteUpdate("closures",previous.id,{status:"superseded",supersededAt:updated.closedAt,supersededBy:responsible}); await remoteAdd("closures",updated,updated.id); }
+    await audit("CLOSE_VERSION_UPDATE","closures",updated.id,previous,updated,responsible,observations||"Nueva versión del cierre",{period,branch,version});
+    return updated;
+  },
+  async addTask(data, responsible) { return this.add("tasks", data, responsible, "Creación de recordatorio"); },
+  async completeTask(id, responsible) { return this.update("tasks", id, { status: "completed", completedAt: now(), completedBy: responsible }, responsible, "Tarea realizada"); },
+  async closePeriod(period, next, responsible, summary, observations = "", checklist = []) {
+    assertResponsible(responsible);
+    const closeBranch = summary?.branch || "General";
+    if (closeBranch === "General") throw new Error("El cierre mensual se realiza por sucursal. General es una vista consolidada y no se puede cerrar.");
+    if (!CONFIG.branches.includes(closeBranch)) throw new Error("Perfil de sucursal inválido para el cierre.");
+    if (periodIsClosed(period, closeBranch)) throw new Error("El período ya está cerrado para este perfil.");
+    const fresh = this.summary(period, closeBranch);
+    const existing = state.closures.filter(x => x.period === period && x.branch === closeBranch).sort((a,b) => Number(b.version||0)-Number(a.version||0));
+    const version = existing.length ? Number(existing[0].version||0)+1 : 1;
+    if (!state.periods.some(x => x.id === period)) state.periods.push({ id: period, status: "open", name: period, createdAt: now(), updatedAt: now() });
+    if (!state.periods.some(x => x.id === next)) state.periods.push({ id: next, status: "open", name: next, createdAt: now(), updatedAt: now() });
+    const closure = { id: uid(), period, version, branch: closeBranch, branchId: closeBranch, periodId: period, responsible, createdBy: responsible, closedAt: now(), summary: fresh, observations: String(observations||"").trim(), checklist, status:"closed", source:"manual_close", createdAt:now(), updatedAt:now() };
+    state.closures.unshift(closure); persist();
+    if (isFirebaseConfigured()) { await remoteAdd("closures", closure, closure.id); }
+    await audit("CLOSE_PERIOD","closures",closure.id,null,closure,responsible,observations||"Cierre mensual confirmado",{period,branch:closeBranch,version});
+    return closure;
+  },
+  async reopenPeriod(period, branch, responsible, reason) {
+    assertResponsible(responsible);
+    if (!String(reason||"").trim()) throw new Error("Reabrir requiere un motivo.");
+    const closure = state.closures.filter(x=>x.period===period&&x.branch===branch&&x.status==="closed").sort((a,b)=>Number(b.version||0)-Number(a.version||0))[0];
+    if (!closure) throw new Error("El período no está cerrado para este perfil.");
+    const row={...closure,status:"reopened",reopenedAt:now(),reopenedBy:responsible,reopenReason:reason,updatedAt:now()}; state.closures=state.closures.map(x=>x.id===closure.id?row:x); persist();
+    if(isFirebaseConfigured()) await remoteUpdate("closures",closure.id,row);
+    await audit("REOPEN_PERIOD","closures",closure.id,closure,row,responsible,reason,{period,branch,version:closure.version}); return row;
+  },
+  summary(period, branch = "General") {
+    const filter = rows => rows.filter(x => !x.deleted && (!branch || branch === "General" || x.branch === branch));
+    const cash = filter(active("cash").filter(x=>x.period===period));
+    const incomes = filter(active("incomes").filter(x=>x.period===period));
+    const invoices = filter(active("invoices").filter(x=>x.period===period));
+    const expenses = filter(active("expenses").filter(x=>x.period===period));
+    const investments = filter(active("investments").filter(x=>x.period===period));
+    const hours = filter(active("hours").filter(x=>x.period===period));
+    const income = incomes.reduce((s,x)=>s+Number(x.amount||0),0);
+    const cashExpense = cash.filter(x=>x.type==="expense").reduce((s,x)=>s+Number(x.amount||0),0);
+    const cashPayment = cash.filter(x=>x.type==="payment").reduce((s,x)=>s+Number(x.amount||0),0);
+    const cashIncome = cash.filter(x=>x.type==="income" && String(x.concept||"").trim().toLowerCase() !== "saldo día anterior" && String(x.concept||"").trim().toLowerCase() !== "saldo dia anterior").reduce((s,x)=>s+Number(x.amount||0),0);
+    const localExpense = expenses.reduce((s,x)=>s+Number(x.amount||0),0);
+    const investment = investments.reduce((s,x)=>s+Number(x.amount||0),0);
+    const providers = invoices.reduce((s,x)=>s+Number(x.amount||0),0);
+    const liqsAll = filter(active("liquidations").filter(x=>x.period===period));
+    const latestLiq = new Map();
+    liqsAll.forEach(x=>{const key=x.employeeId||x.employee;const cur=latestLiq.get(key);if(!cur || String(x.updatedAt||x.createdAt)>String(cur.updatedAt||cur.createdAt)) latestLiq.set(key,x);});
+    const latest = [...latestLiq.values()];
+    const salary = latest.length ? latest.reduce((s,x)=>s+Number(x.gross||0),0) : hours.reduce((s,x)=>s+Number(x.salaryCost||0),0);
+    const totalExpenses = localExpense + providers + investment + salary;
+    const result = income-totalExpenses;
+    const cashOpening = Number(state.settings.find(x=>x.id===`cash-opening-${period}-${branch}`)?.amount||0);
+    const cashExpected = cash.reduce((s,x)=>s+Number(x.expected||0),0);
+    const cashFinal = cashOpening + cashIncome - cashExpense - cashPayment;
+    const cashControl = cashExpected - cashFinal;
+    return {period,branch,income,cashExpense,cashPayment,cashIncome,cashOpening,localExpense,investment,providers,salary,totalExpenses,result,cashCount:cash.length,invoiceCount:invoices.length,expenseCount:expenses.length,investmentCount:investments.length,hours:hours.reduce((s,x)=>s+Number(x.hours||0),0),cashExpected,cashFinal,cashControl,liquidationCount:latest.length};
+  },
+  async archiveFile(file) {
+    const responsible = file.responsible || window.__blunnoResponsible || "";
+    assertResponsible(responsible);
+    const baseName = String(file.name || "documento-blunno.pdf");
+    const siblings = active("files").filter(x=>x.sector===file.sector&&x.period===file.period&&x.branch===file.branch&&x.name===baseName);
+    const nextVersion = Number(file.version || 0) || (siblings.reduce((m,x)=>Math.max(m,Number(x.version||1)),0)+1);
+    const row = {
+      id: uid(), ...file, name: baseName, version: nextVersion, responsible, createdBy: file.createdBy || responsible,
+      branchId: file.branch || null, periodId: file.period || null, status: "active",
+      storagePath: file.storagePath || `blunno/${String(file.period||'0000-00').slice(0,4)}/${String(file.period||'0000-00').slice(5,7)}/${String(file.branch||'General').replace(/[^a-zA-Z0-9]+/g,'-').toLowerCase()}/${String(file.sector||'documentos').replace(/[^a-zA-Z0-9]+/g,'-').toLowerCase()}/${baseName}`,
+      deleted: false, createdAt: file.createdAt || now(), updatedAt: now()
+    };
+    if(file.blob){
+      try{
+        await vaultPut(row.id,file.blob);
+        row.vaultKey=row.id;
+      }catch(e){
+        console.warn("Vault local",e);
+        try{
+          if(file.blob.size <= 1500000) row.dataUrl = await new Promise((resolve,reject)=>{
+            const reader = new FileReader();
+            reader.onload=()=>resolve(reader.result);
+            reader.onerror=reject;
+            reader.readAsDataURL(file.blob);
+          });
+        }catch(_){}
+      }
+      delete row.blob;
+    }
+    state.files.unshift(row);
+    persist();
+    if (isFirebaseConfigured()) await remoteAdd("files", row, row.id);
+    await audit("FILE_ARCHIVED","files",row.id,null,row,responsible,"Documento archivado en Archivos",{
+      sector: row.sector || "Documento",
+      period: row.period || "",
+      branch: row.branch || "General"
+    });
+    return row;
+  },
+  async getFileBlob(id) {
+    const row=this.get("files",id); if(!row) return null;
+    if(row.url){ try{ const res=await fetch(row.url); if(res.ok) return res.blob(); }catch(e){ console.warn("Storage recovery",e); } }
+    if(row.vaultKey){ const local=await vaultGet(row.vaultKey); if(local) return local; }
+    if(row.dataUrl){ try{ const res=await fetch(row.dataUrl); if(res.ok) return res.blob(); }catch(e){ console.warn("Data URL recovery",e); } }
+    return null;
+  },
+  async restoreFileBlob(id, blob, responsible) {
+    assertResponsible(responsible);
+    if(!(blob instanceof Blob)) throw new Error("El archivo del backup no es válido.");
+    const row=this.getRaw("files",id); if(!row) throw new Error("No se encontró la ficha documental del archivo.");
+    await vaultPut(id, blob);
+    const next={...row,vaultKey:id,deleted:false,status:row.status==='deleted'?'active':row.status,updatedAt:now(),responsible};
+    state.files=state.files.map(x=>x.id===id?next:x); persist();
+    await audit("FILE_RESTORED_FROM_BACKUP","files",id,row,next,responsible,"Archivo binario restaurado desde backup");
+    return next;
+  },
+  latestChangeAt(period, branch, sourceCollection = null) {
+    const rows = (state.audit||[]).filter(x => x.period === period && (!branch || x.branch === branch) && x.collection !== "files" && (!sourceCollection || x.collection === sourceCollection));
+    return rows.reduce((latest,x) => !latest || String(x.at)>String(latest.at) ? x : latest, null);
+  },
+  fileIntegrity(file) {
+    const source = this.latestChangeAt(file.period,file.branch,file.sourceCollection||null);
+    if (!source || !file.createdAt) return {status:"sin-control",detail:"No hay una modificación de origen comparable."};
+    return String(source.at) > String(file.createdAt) ? {status:"anterior",detail:`El origen cambió después de generar el documento (${source.action}).`} : {status:"ok",detail:"El documento fue generado después de la última modificación de origen registrada."};
+  },
+  async recordAudit(action, collection, before, after, responsible, reason, meta={}) { assertResponsible(responsible); return audit(action, collection, uid(), before, after, responsible, reason, meta); },
+  async sync() { await syncRemote(); },
+  exportJsonBlob() { return new Blob([JSON.stringify(state, null, 2)], {type:"application/json"}); },
+  exportJson() {
+    const blob=this.exportJsonBlob(); const a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download=`BLUNNO_BACKUP_${today()}.json`; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),800);
+  },
+  async importState(obj, responsible) {
+    assertResponsible(responsible);
+    if (!obj || typeof obj !== "object") throw new Error("El backup no tiene un formato válido.");
+    const before=JSON.parse(JSON.stringify(state));
+    const next={...empty(),...obj};
+    next.providers=Array.isArray(next.providers)?next.providers:[];
+    next.employees=Array.isArray(next.employees)?next.employees:[];
+    state=ensureProviderCatalog(next);
+    if(!state.periods.length)state.periods=[{id:CONFIG.defaultPeriod,status:"open",name:CONFIG.defaultPeriod,createdAt:now(),updatedAt:now()}];
+    const after=JSON.parse(JSON.stringify(state));
+    persist();
+    await audit("IMPORT_STATE","system","backup",before,after,responsible,"Restauración de backup");
+  }
+};
+
+__BLUNNO_MODULES.store = { Store };
+})();
+
+// ===== MODULE: views =====
+(() => {
+const { CONFIG, money, number, dateLabel, dateTimeLabel, periodLabel, daysInPeriod, isoDate, prevPeriod, today } = __BLUNNO_MODULES.config;
+const { Store } = __BLUNNO_MODULES.store;
+
+const esc = v => String(v ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]));
+const rows = (name, period, branch) => Store.list(name, period, branch);
+const kpi = (label, value, hint="", cls="") => `<article class="kpi ${cls}"><span>${esc(label)}</span><strong>${value}</strong><small>${esc(hint)}</small></article>`;
+const table = (headers, body, empty="No hay registros para mostrar.") => {
+ const hasSelection=String(body||'').includes('data-bulk-select=');
+ const collection=(String(body||'').match(/data-bulk-select="([^"]+)"/)||[])[1]||'';
+ const head=hasSelection?['<input type="checkbox" title="Seleccionar todo" data-bulk-select-all="'+esc(collection)+'">',...headers]:headers;
+ const toolbar=hasSelection?`<div class="bulk-toolbar"><span>Seleccioná movimientos para operar en conjunto.</span><button class="danger-button" data-bulk-delete="${esc(collection)}">Enviar seleccionados a papelera</button></div>`:'';
+ return `${toolbar}<div class="table-wrap"><table><thead><tr>${head.map(h=>`<th>${h}</th>`).join("")}</tr></thead><tbody>${body || `<tr><td colspan="${head.length}" class="empty">${empty}</td></tr>`}</tbody></table></div>`;
+};
+const actions = (collection,id,editType=collection) => {
+ const readOnly = typeof window !== "undefined" && window.__blunnoBranch === "General" && ["invoices","cash","expenses","investments","employees","hours","incomes"].includes(collection);
+ if (readOnly) return `<div class="row-actions"><button class="secondary-button compact-button" data-detail="${esc(collection)}" data-id="${esc(id)}">Ver</button></div>`;
+ return `<div class="row-actions"><input type="checkbox" aria-label="Seleccionar" data-bulk-select="${esc(collection)}" data-id="${esc(id)}"><button data-edit="${editType}" data-id="${esc(id)}">Editar</button><button class="danger-link" data-delete="${collection}" data-id="${esc(id)}">Papelera</button></div>`;
+};
+const branchFilter = branch => CONFIG.profiles.map(x=>`<button class="filter-chip ${x===branch?'active':''}" data-profile="${x}">${x}</button>`).join("");
+
+const formSchema = {
+  cash: [
+    ["date","Fecha","date"],["branch","Sucursal","select",CONFIG.branches],
+    ["type","Tipo","select",[["income","Ingreso"],["expense","Gasto de caja"],["payment","Pago"]]],
+    ["concept","Concepto","text"],["amount","Importe","number"],["expected","Importe esperado","number"],
+    ["notes","Observaciones","textarea"],["lateMovement","Movimiento tardío","checkbox"]
+  ],
+  provider: [["name","Proveedor","text"]],
+  invoice: [
+    ["provider","Proveedor","text"],["number","N° de factura","text"],["operationDate","Fecha del movimiento","date"],
+    ["loadDate","Fecha de carga","date"],["branch","Sucursal","select",CONFIG.branches],
+    ["amount","Importe","number"],["notes","Observaciones","textarea"],["lateMovement","Carga tardía de período cerrado","checkbox"]
+  ],
+  income: [
+    ["date","Fecha","date"],["branch","Sucursal","select",CONFIG.branches],["method","Medio / categoría","select",["Tarjeta","Contado","Mayoristas","Banco","Transferencia","Otros"]],["concept","Origen / concepto","text"],
+    ["amount","Importe","number"],["notes","Detalle","textarea"],["lateMovement","Movimiento tardío","checkbox"]
+  ],
+  expense: [
+    ["date","Fecha","date"],["branch","Sucursal","select",CONFIG.branches],["category","Categoría","select",CONFIG.expenseCategories],
+    ["concept","Detalle / resumen","text"],["amount","Importe","number"],["document","Comprobante / referencia","text"],["notes","Observaciones","textarea"],
+    ["lateMovement","Movimiento tardío","checkbox"]
+  ],
+  investment: [
+    ["date","Fecha","date"],["branch","Sucursal","select",CONFIG.branches],["concept","Resumen de la inversión","text"],
+    ["amount","Importe","number"],["document","Comprobante / referencia","text"],["notes","Detalle","textarea"],["lateMovement","Movimiento tardío","checkbox"]
+  ],
+  employee: [["name","Nombre completo","text"],["branch","Sucursal","select",CONFIG.branches],["role","Puesto","text"],["hourlyRate","Valor hora actual","number"],["active","Estado","select",[["true","Activo"],["false","Inactivo"]]]],
+  hours: [["employee","Empleado","text"],["date","Fecha","date"],["hours","Horas","number"],["advance","Adelanto / vale","number"],["merchandise","Mercadería","number"],["holiday","Feriado","select",[["no","No"],["yes","Sí"]]],["notes","Observaciones","textarea"]],
+  task: [["title","Tarea / recordatorio","text"],["dueDate","Fecha","date"],["dueTime","Hora","time"],["priority","Prioridad","select",[["normal","Normal"],["high","Alta"],["urgent","Urgente"]]],["responsible","Responsable","select",CONFIG.responsiblePeople],["repeat","Repetición","select",[["none","Sin repetición"],["daily","Diaria"],["weekly","Semanal"],["monthly","Mensual"]]],["notes","Notas","textarea"]]
+};
+
+function renderDashboard(content, period, branch="General") {
+  const s=Store.summary(period,branch), prev=Store.summary(prevPeriod(period),branch);
+  const pct=(a,b)=>a===0?(b===0?0:100):((b-a)/Math.abs(a))*100;
+  const alerts=[];
+  if(s.income===0) alerts.push("No hay ingresos independientes cargados para el período seleccionado.");
+  const tasks=Store.list("tasks").filter(x=>x.status!=="completed").sort((a,b)=>`${a.dueDate} ${a.dueTime}`.localeCompare(`${b.dueDate} ${b.dueTime}`)).slice(0,4);
+  const detailButton=(kind,label,value,hint)=>`<button class="kpi kpi-click" data-dashboard-detail="${kind}"><span>${esc(label)}</span><strong>${value}</strong><small>${esc(hint)}</small></button>`;
+  content.innerHTML=`
+    <div class="profile-bar"><div><span class="section-kicker">PERFIL DE TRABAJO</span><b>${esc(branch)}</b><small>${branch==='General'?'Vista consolidada: no mezcla ni modifica las sucursales.':'Los valores se filtran exclusivamente a esta sucursal.'}</small></div><div class="profile-chips">${branchFilter(branch)}</div></div>
+    <section class="hero"><div><span class="hero-tag">CENTRO DE CONTROL BLUNNO</span><h2>Todo el negocio, ordenado y trazable.</h2><p>${periodLabel(period)} · ${esc(branch)} · cada cambio queda auditado.</p><div class="hero-actions"><button class="primary-button" data-view-jump="close">Preparar cierre</button><button class="secondary-button" data-view-jump="agent">Abrir Agente BLUNNO</button><button class="secondary-button" data-pdf-close="dashboard">PDF del resumen</button></div></div><img src="distri.jpeg" alt="Distribuidora Blunno"></section>
+    <div class="kpi-grid">${detailButton("income","Ingresos",money(s.income),`${Store.list('incomes',period,branch).length} movimientos independientes`)}${detailButton("expenses","Gastos del local",money(s.localExpense),`${s.expenseCount} movimientos`)}${detailButton("providers","Proveedores",money(s.providers),`${s.invoiceCount} facturas cargadas`)}${detailButton("investments","Inversiones",money(s.investment),`${s.investmentCount} movimientos`)}${detailButton("salary","Personal",money(s.salary),`${s.liquidationCount} liquidaciones / horas`)}${detailButton("result","Resultado",money(s.result),"Sin incluir Caja diaria")}</div>
+    <div class="grid-2"><section class="panel"><div class="panel-head"><div><span class="section-kicker">VARIACIÓN</span><h3>Contra ${periodLabel(prevPeriod(period))}</h3></div></div>${metricLine("Ingresos",prev.income,s.income,pct(prev.income,s.income))}${metricLine("Gastos del local",prev.localExpense,s.localExpense,pct(prev.localExpense,s.localExpense))}${metricLine("Resultado",prev.result,s.result,pct(prev.result,s.result))}</section><section class="panel"><div class="panel-head"><div><span class="section-kicker">CONTROL</span><h3>Alertas y pendientes</h3></div></div>${alerts.length?alerts.map(a=>`<div class="alert-row warning">⚠ ${esc(a)}</div>`).join(''):'<div class="alert-row success">✓ No hay alertas críticas detectadas.</div>'}${tasks.map(t=>`<div class="task-mini"><b>${esc(t.title)}</b><span>${dateLabel(t.dueDate)} ${esc(t.dueTime||'')} · ${esc(t.responsible)}</span></div>`).join('')}</section></div>
+  `;
+}
+
+function metricLine(label,a,b,p){return `<div class="metric-line"><div><b>${esc(label)}</b><span>${money(a)} → ${money(b)}</span></div><strong class="${p>=0?'up':'down'}">${p>=0?'+':''}${p.toFixed(1)}%</strong></div>`}
+
+function renderCash(content,period,branch="General"){
+ const data=rows("cash",period,branch);
+ const days=daysInPeriod(period);
+ const weeks=Math.max(1,Math.ceil(days/7));
+ const rawIndex=Number(localStorage.getItem(`blunno-cash-week-${period}-${branch}`)||0);
+ const weekIndex=Math.min(Math.max(rawIndex,0),weeks-1);
+ const startDay=weekIndex*7+1, endDay=Math.min(startDay+6,days), weekDays=Array.from({length:endDay-startDay+1},(_,i)=>startDay+i);
+ const opening=getOpeningForView(period,branch);
+ const conceptsByType={income:[...new Set([...CONFIG.cashIncomeConcepts,...data.filter(x=>x.type==='income').map(x=>x.concept||'Sin concepto')])],expense:[...new Set([...CONFIG.cashExpenseConcepts,...data.filter(x=>x.type==='expense').map(x=>x.concept||'Sin concepto')])],payment:[...new Set([...CONFIG.cashPaymentConcepts,...data.filter(x=>x.type==='payment').map(x=>x.concept||'Pagos')])]};
+ const dayTotals=Array.from({length:days},(_,i)=>{const d=i+1,date=isoDate(period,d);const inc=data.filter(x=>x.type==='income'&&x.date===date&&!/^saldo\s+d[ií]a\s+anterior$/i.test(String(x.concept||''))).reduce((s,x)=>s+Number(x.amount||0),0),exp=data.filter(x=>x.type==='expense'&&x.date===date).reduce((s,x)=>s+Number(x.amount||0),0),pay=data.filter(x=>x.type==='payment'&&x.date===date).reduce((s,x)=>s+Number(x.amount||0),0);return {d,date,inc,exp,pay}});
+ let saldo=opening; dayTotals.forEach(x=>{x.opening=saldo;x.available=saldo+x.inc;x.rest=x.available-x.exp-x.pay;saldo=x.rest});
+ const kindTitle={income:'Ingresos',expense:'Gastos de caja',payment:'Pagos'};
+ const matrix=(type)=>`<section class="panel cash-matrix-panel"><div class="panel-head"><div><span class="section-kicker">${type==='income'?'INGRESOS':type==='expense'?'GASTOS DE CAJA':'PAGOS'}</span><h3>${kindTitle[type]}</h3></div>${branch!=='General'?`<button class="secondary-button" data-cash-add-row="${type}">＋ Agregar concepto</button>`:''}</div><div class="sheet-wrap"><table class="matrix-table cash-main-matrix"><thead><tr><th class="sticky-col">Concepto</th>${weekDays.map(d=>{const dt=new Date(`${isoDate(period,d)}T12:00:00`);return `<th>${dt.toLocaleDateString('es-AR',{weekday:'short'}).replace('.','')}<small>${d}</small></th>`}).join('')}<th>TOTAL</th></tr></thead><tbody>${conceptsByType[type].map(c=>`<tr><th class="sticky-col">${esc(c)}</th>${weekDays.map(d=>{const date=isoDate(period,d),r=data.find(q=>q.type===type&&q.date===date&&(q.concept||'Sin concepto')===c);const carry=type==='income'&&/^saldo\s+d[ií]a\s+anterior$/i.test(String(c||''));const carryValue=dayTotals[d-1]?.opening||0;return `<td data-cash-cell data-type="${type}" data-concept="${esc(c)}" data-date="${date}"><input inputmode="decimal" ${branch==='General'||carry?'disabled':''} value="${carry?esc(carryValue):r?esc(r.amount):''}" placeholder="—" title="${carry?'Calculado automáticamente desde el resto del día anterior':''}"></td>`}).join('')}<td class="total-cell">${type==='income'&&/^saldo\s+d[ií]a\s+anterior$/i.test(String(c||''))?'—':money(weekDays.reduce((sum,d)=>sum+Number(data.find(q=>q.type===type&&q.date===isoDate(period,d)&&(q.concept||'Sin concepto')===c)?.amount||0),0))}</td></tr>`).join('')||`<tr><td colspan="${weekDays.length+2}" class="empty">No hay conceptos definidos.</td></tr>`}</tbody><tfoot><tr><th class="sticky-col">TOTAL</th>${weekDays.map(d=>`<th>${money(dayTotals[d-1][type==='income'?'inc':type==='expense'?'exp':'pay'])}</th>`).join('')}<th>${money(weekDays.reduce((sum,d)=>sum+Number(dayTotals[d-1][type==='income'?'inc':type==='expense'?'exp':'pay']),0))}</th></tr></tfoot></table></div></section>`;
+ content.innerHTML=`<div class="profile-bar"><div><span class="section-kicker">CAJA DIARIA · CUADRO OPERATIVO</span><b>${esc(branch)}</b><small>Control físico de dinero. No alimenta el resultado económico. Semana ${weekIndex+1} de ${weeks} · días ${startDay}–${endDay}.</small></div><div class="profile-chips">${branchFilter(branch)}</div></div>
+ <div class="cash-week-nav"><button class="secondary-button" data-cash-week="prev" ${weekIndex===0?'disabled':''}>← Semana anterior</button><strong>Semana ${weekIndex+1} · ${dateLabel(isoDate(period,startDay))} al ${dateLabel(isoDate(period,endDay))}</strong><button class="secondary-button" data-cash-week="next" ${weekIndex===weeks-1?'disabled':''}>Semana siguiente →</button></div>
+ <div class="cash-topbar"><div><span>Saldo inicial del período</span><strong>${money(opening)}</strong><small>El resto de cada día pasa automáticamente al siguiente.</small></div>${branch!=='General'?`<button id="cashOpeningButton" class="secondary-button">Editar saldo inicial</button>`:''}<button class="secondary-button" data-pdf-close="cash">Generar PDF</button></div>
+ <div class="mini-kpis">${kpi('Ingresos',money(dayTotals.reduce((s,x)=>s+x.inc,0)),'Período')}${kpi('Gastos',money(dayTotals.reduce((s,x)=>s+x.exp,0)),'Período')}${kpi('Pagos',money(dayTotals.reduce((s,x)=>s+x.pay,0)),'Período')}${kpi('Resto final',money(saldo),'Saldo que arranca el siguiente día')}</div>
+ ${matrix('income')}${matrix('expense')}${matrix('payment')}
+ <section class="panel"><div class="panel-head"><div><span class="section-kicker">CONTROL DIARIO</span><h3>Saldo anterior + ingresos − gastos − pagos = resto</h3></div></div><div class="table-wrap"><table class="matrix-table"><thead><tr><th>Día</th>${weekDays.map(d=>`<th>${d}</th>`).join('')}</tr></thead><tbody><tr><th>SALDO ANTERIOR</th>${weekDays.map(d=>`<td>${money(dayTotals[d-1].opening)}</td>`).join('')}</tr><tr><th>INGRESOS</th>${weekDays.map(d=>`<td>${money(dayTotals[d-1].inc)}</td>`).join('')}</tr><tr><th>PLATA DISPONIBLE</th>${weekDays.map(d=>`<td>${money(dayTotals[d-1].available)}</td>`).join('')}</tr><tr><th>GASTOS</th>${weekDays.map(d=>`<td>${money(dayTotals[d-1].exp)}</td>`).join('')}</tr><tr><th>PAGOS</th>${weekDays.map(d=>`<td>${money(dayTotals[d-1].pay)}</td>`).join('')}</tr><tr class="total-row"><th>RESTO</th>${weekDays.map(d=>`<td>${money(dayTotals[d-1].rest)}</td>`).join('')}</tr></tbody></table></div></section>`;
+}
+
+function getOpeningForView(period,branch){return Number(Store.db.settings.find(x=>x.id===`cash-opening-${period}-${branch}`)?.amount||0)}
+
+function renderIncome(content,period,branch="General"){ const data=rows('incomes',period,branch).sort((a,b)=>String(b.date).localeCompare(String(a.date))); const total=data.reduce((s,x)=>s+Number(x.amount||0),0); content.innerHTML=`<div class="profile-bar"><div><span class="section-kicker">INGRESOS</span><b>${esc(branch)}</b><small>Ingresos del negocio separados de Caja diaria.</small></div><div class="profile-chips">${branchFilter(branch)}</div></div><div class="page-intro"><div><h2>Ingresos</h2><p>Estos importes son los que alimentan el indicador Ingresos de la página principal. Caja diaria queda completamente separada.</p></div><button class="secondary-button" data-pdf-close="income">PDF</button><button class="primary-button" data-new="income">＋ Nuevo ingreso</button></div><div class="mini-kpis">${kpi('Total',money(total))}${kpi('Movimientos',data.length)}</div>${table(['Fecha','Medio','Concepto','Sucursal','Importe','Acciones'],data.map(x=>`<tr><td>${dateLabel(x.date)}</td><td>${esc(x.method||'—')}</td><td><b>${esc(x.concept||'Sin concepto')}</b></td><td>${esc(x.branch)}</td><td>${money(x.amount)}</td><td>${actions('incomes',x.id,'income')}</td></tr>`).join(''))}` }
+
+function renderProviders(content,period,branch="General"){
+ const data=rows('providers').sort((a,b)=>String(a.name).localeCompare(String(b.name),'es')); const invoices=rows('invoices',period,branch);
+ const totals=new Map(); invoices.forEach(x=>totals.set(x.provider,(totals.get(x.provider)||0)+Number(x.amount||0)));
+ const days=daysInPeriod(period); const matrix=data.map(p=>{const cells=Array.from({length:days},(_,i)=>{const date=isoDate(period,i+1);const v=invoices.filter(x=>x.provider===p.name&&(x.operationDate||x.date)===date).reduce((s,x)=>s+Number(x.amount||0),0);return `<td>${v?money(v):'—'}</td>`}).join('');return `<tr><th class="sticky-col"><b>${esc(p.name)}</b></th>${cells}<td class="total-cell">${money(totals.get(p.name)||0)}</td></tr>`}).join('');
+ content.innerHTML=`<div class="profile-bar"><div><span class="section-kicker">MAESTRO PERMANENTE</span><b>Proveedores</b><small>Los nombres permanecen entre meses. Las facturas son movimientos independientes.</small></div><div class="profile-chips">${branchFilter(branch)}</div></div><div class="page-intro"><div><h2>Proveedores</h2><p>Escribí parte del nombre al cargar una factura y completamos la coincidencia.</p></div><button class="secondary-button" data-pdf-close="providers">PDF</button><button class="primary-button" data-new="provider">＋ Nuevo proveedor</button></div>${table(['Proveedor','Facturado en período','Estado','Acciones'],data.map(x=>`<tr><td><b>${esc(x.name)}</b></td><td>${money(totals.get(x.name)||0)}</td><td><span class="status-pill ${x.active===false?'muted':''}">${x.active===false?'INACTIVO':'ACTIVO'}</span></td><td>${actions('providers',x.id,'provider')}<button class="secondary-button compact-button" data-provider-history="${esc(x.name)}">Historial</button></td></tr>`).join(''))}<section class="panel"><div class="panel-head"><div><span class="section-kicker">PLANILLA</span><h3>Proveedor × día · ${periodLabel(period)}</h3></div></div><div class="sheet-wrap"><table class="hours-sheet provider-matrix"><thead><tr><th class="sticky-col">Proveedor</th>${Array.from({length:days},(_,i)=>`<th>${i+1}</th>`).join('')}<th>TOTAL</th></tr></thead><tbody>${matrix}</tbody></table></div></section>`;
+}
+
+function renderInvoices(content,period,branch="General"){
+ const data=rows('invoices',period,branch).sort((a,b)=>String(b.operationDate||b.date).localeCompare(String(a.operationDate||a.date))); const total=data.reduce((s,x)=>s+Number(x.amount||0),0);
+ content.innerHTML=`<div class="profile-bar"><div><span class="section-kicker">FACTURAS · CARGA Y CONTROL</span><b>${esc(branch)}</b><small>Solo cargamos la factura. No hay estado de pago ni vencimiento: una factura cargada queda marcada en verde como CARGADA.</small></div><div class="profile-chips">${branchFilter(branch)}</div></div><section class="panel quick-invoice"><div class="panel-head"><div><span class="section-kicker">CARGA EXPRESS</span><h3>Una factura en segundos</h3></div></div>${branch==='General'?`<div class="notice warning">Elegí una sucursal concreta arriba para cargar facturas.</div>`:`<div class="quick-invoice-grid"><input id="quickInvoiceProvider" list="providerList" placeholder="Proveedor"><input id="quickInvoiceNumber" placeholder="N° factura"><input id="quickInvoiceDate" type="date" value="${today()}"><input id="quickInvoiceAmount" inputmode="decimal" placeholder="Importe"><button class="primary-button" data-invoice-quick-save>Guardar factura</button></div><div class="quick-hint">Ejemplo: Aguilera · 0001-00012345 · fecha · $ 125.000</div>`}</section><div class="page-intro"><div><h2>Facturas</h2><p>Cada factura conserva fecha de movimiento, fecha de carga, sucursal, responsable y auditoría. La misma numeración puede repetirse en distintas sucursales.</p></div><button class="secondary-button" data-pdf-close="invoices">PDF</button></div><div class="mini-kpis">${kpi('Total',money(total))}${kpi('Documentos',data.length)}${kpi('Proveedores con facturas',new Set(data.map(x=>x.provider)).size)}</div>${table(['Proveedor','Factura','Movimiento','Carga','Sucursal','Importe','Estado','Acciones'],data.map(x=>`<tr><td><b>${esc(x.provider)}</b></td><td>${esc(x.number||'—')}</td><td>${dateLabel(x.operationDate||x.date)}</td><td>${dateTimeLabel(x.loadDate||x.createdAt)}</td><td>${esc(x.branch)}</td><td class="amount clickable" data-detail="invoices" data-id="${x.id}">${money(x.amount)}</td><td><span class="status-pill success">CARGADA</span></td><td>${actions('invoices',x.id)}</td></tr>`).join(''))}`;
+}
+
+function renderExpenses(content,period,branch="General"){
+ const data=rows('expenses',period,branch).sort((a,b)=>String(b.date).localeCompare(String(a.date))); const total=data.reduce((s,x)=>s+Number(x.amount||0),0); const cats=CONFIG.expenseCategories.map(c=>[c,data.filter(x=>x.category===c).reduce((s,x)=>s+Number(x.amount||0),0)]).filter(x=>x[1]);
+ content.innerHTML=`<div class="profile-bar"><div><span class="section-kicker">GASTOS DEL LOCAL</span><b>${esc(branch)}</b><small>Categorías basadas en la estructura de tus planillas.</small></div><div class="profile-chips">${branchFilter(branch)}</div></div><div class="page-intro"><div><h2>Gastos por categoría</h2><p>Proveedores y gastos del local se mantienen separados.</p></div><button class="secondary-button" data-pdf-close="expenses">PDF</button><button class="primary-button" data-new="expense">＋ Nuevo gasto</button></div><div class="mini-kpis">${kpi('Total gastos',money(total))}${kpi('Movimientos',data.length)}${kpi('Categorías usadas',cats.length)}</div><div class="category-cards">${cats.map(([c,v])=>`<div class="category-card"><span>${esc(c)}</span><strong>${money(v)}</strong></div>`).join('')||'<div class="empty-block">Todavía no hay gastos por categoría.</div>'}</div>${table(['Fecha','Categoría','Detalle','Sucursal','Importe','Responsable','Acciones'],data.map(x=>`<tr><td>${dateLabel(x.date)}</td><td><b>${esc(x.category)}</b></td><td>${esc(x.concept)}</td><td>${esc(x.branch)}</td><td class="amount">${money(x.amount)}</td><td>${esc(x.responsible)}</td><td>${actions('expenses',x.id)}</td></tr>`).join(''))}`;
+}
+
+function renderInvestments(content,period,branch="General"){
+ const data=rows('investments',period,branch).sort((a,b)=>String(b.date).localeCompare(String(a.date))); const total=data.reduce((s,x)=>s+Number(x.amount||0),0);
+ content.innerHTML=`<div class="profile-bar"><div><span class="section-kicker">GASTOS DE INVERSIÓN</span><b>${esc(branch)}</b><small>Cada sucursal conserva su propia cuenta; General consolida sin mezclar registros.</small></div><div class="profile-chips">${branchFilter(branch)}</div></div><div class="page-intro"><div><h2>Inversiones</h2><p>Resumen, importe, fecha, responsable y comprobante quedan registrados.</p></div><button class="secondary-button" data-pdf-close="investments">PDF</button><button class="primary-button" data-new="investment">＋ Nueva inversión</button></div><div class="mini-kpis">${kpi('Invertido',money(total))}${kpi('Movimientos',data.length)}</div>${table(['Fecha','Resumen','Sucursal','Importe','Comprobante','Responsable','Acciones'],data.map(x=>`<tr><td>${dateLabel(x.date)}</td><td><b>${esc(x.concept)}</b><small class="cell-note">${esc(x.notes||'')}</small></td><td>${esc(x.branch)}</td><td class="amount">${money(x.amount)}</td><td>${esc(x.document||'—')}</td><td>${esc(x.responsible)}</td><td>${actions('investments',x.id)}</td></tr>`).join(''))}`;
+}
+
+function renderPeople(content,period,branch="General"){
+ const data=rows('employees').filter(x=>branch==='General'||x.branch===branch);
+ content.innerHTML=`<div class="profile-bar"><div><span class="section-kicker">PERSONAL</span><b>${esc(branch)}</b><small>Las fichas pertenecen a una sucursal y no se mezclan.</small></div><div class="profile-chips">${branchFilter(branch)}</div></div><div class="page-intro"><div><h2>Personal</h2><p>Valor hora individual, estado y sucursal.</p></div><button class="secondary-button" data-pdf-close="people">PDF</button><button class="primary-button" data-new="employee">＋ Nuevo empleado</button></div>${table(['Empleado','Sucursal','Puesto','Valor hora','Estado','Acciones'],data.map(x=>`<tr><td><b>${esc(x.name)}</b></td><td>${esc(x.branch)}</td><td>${esc(x.role||'—')}</td><td>${money(x.hourlyRate)}</td><td><span class="status-pill ${x.active===false?'muted':''}">${x.active===false?'INACTIVO':'ACTIVO'}</span></td><td>${actions('employees',x.id,'employee')}</td></tr>`).join(''))}`;
+}
+
+function weekCells(period,employee,branch){const days=daysInPeriod(period);let html='';for(let d=1;d<=days;d++){const date=isoDate(period,d), r=Store.list('hours',period,branch).find(x=>x.employeeId===employee.id&&x.date===date);const dow=new Date(`${date}T12:00:00`).toLocaleDateString('es-AR',{weekday:'short'}).replace('.','');html+=`<td class="hour-cell" data-hour-date="${date}" data-employee="${employee.id}"><span>${dow}</span><input inputmode="decimal" value="${r?esc(r.hours):''}" placeholder="–" data-hour-input></td>`}return html;}
+
+function renderHours(content,period,branch="General"){
+ const allEmployees=Store.list('employees').filter(e=>e.active!==false && (branch==='General'||e.branch===branch)).sort((a,b)=>a.name.localeCompare(b.name,'es')); const savedEmployee=localStorage.getItem('blunno-hours-employee')||'ALL'; const selectedEmployee=allEmployees.some(e=>e.id===savedEmployee)?savedEmployee:'ALL'; const employees=allEmployees.filter(e=>selectedEmployee==='ALL'||e.id===selectedEmployee);
+ const data=Store.list('hours',period,branch); const days=daysInPeriod(period);
+ const totalFor=e=>data.filter(x=>x.employeeId===e.id).reduce((s,x)=>s+Number(x.hours||0),0);
+ const value=e=>{const r=data.filter(x=>x.employeeId===e.id);return {hours:r.reduce((s,x)=>s+Number(x.hours||0),0),advance:r.reduce((s,x)=>s+Number(x.advance||0),0),merch:r.reduce((s,x)=>s+Number(x.merchandise||0),0),holiday:r.filter(x=>x.holiday==='yes').reduce((s,x)=>s+Number(x.hours||0),0)}};
+ const weeks=[]; for(let start=1;start<=days;start+=7) weeks.push({start,end:Math.min(start+6,days)});
+ const grid=employees.map(e=>{const v=value(e); const weekCells=weeks.map(w=>`<td class="week-total">${number(data.filter(x=>x.employeeId===e.id&&Number(x.date.slice(-2))>=w.start&&Number(x.date.slice(-2))<=w.end).reduce((s,x)=>s+Number(x.hours||0),0))}</td>`).join(''); return `<tr><th class="sticky-col employee-sticky"><b>${esc(e.name)}</b><small>${esc(e.branch||'Sin asignar')}</small></th>${Array.from({length:days},(_,i)=>{const d=i+1,date=isoDate(period,d),x=data.find(r=>r.employeeId===e.id&&r.date===date);const cls=x?.holiday==='yes'?'holiday-cell':x?.status==='franco'?'franco-cell':'';return `<td class="${cls}" data-hour-date="${date}" data-employee="${e.id}" data-hour-cell><input class="hour-cell-input" value="${esc(x?.displayValue??x?.hours??'')}" placeholder="—" inputmode="decimal" title="Número de horas · F = franco · H = feriado"></td>`}).join('')}${weekCells}<td class="total-cell">${number(v.hours)}</td><td><button class="cell-edit-button" data-hours-adjust="advance" data-employee-adjust="${e.id}">${money(v.advance)}</button></td><td><button class="cell-edit-button" data-hours-adjust="merchandise" data-employee-adjust="${e.id}">${money(v.merch)}</button></td><td>${number(v.holiday)}</td><td><button class="primary-button compact-button" data-liquidate="${e.id}">Totalizar</button></td></tr>`}).join('');
+ const footer=Array.from({length:days},(_,i)=>{const d=i+1;return `<th>${number(data.filter(x=>x.date===isoDate(period,d)).reduce((s,x)=>s+Number(x.hours||0),0))}</th>`}).join('');
+ content.innerHTML=`<div class="profile-bar"><div><span class="section-kicker">HORAS MENSUALES · PLANILLA</span><b>${esc(branch)}</b><small>La estructura replica la lógica del Excel: días directos, totales, adelantos, mercadería y feriados. En una celda: número = horas, F = franco, H = feriado (conserva las horas o usa 8 si está vacía).</small></div><div class="profile-chips">${branchFilter(branch)}</div></div>
+ <div class="hours-toolbar"><div><b>${periodLabel(period)}</b><span>${employees.length} empleados visibles · ${number(data.reduce((s,x)=>s+Number(x.hours||0),0))} horas cargadas</span></div><div><label class="hours-filter">Empleado<select id="hoursEmployeeFilter"><option value="ALL" ${selectedEmployee==='ALL'?'selected':''}>Todos los empleados</option>${allEmployees.map(e=>`<option value="${e.id}" ${selectedEmployee===e.id?'selected':''}>${esc(e.name)}</option>`).join('')}</select></label><button class="secondary-button" data-hours-focus="first">Ir a primera celda</button><button class="secondary-button" data-pdf-close="hours">PDF</button><button class="primary-button" data-new="hours">＋ Carga manual</button></div></div>
+ <section class="panel hours-panel"><div class="sheet-wrap hours-sheet"><table class="matrix-table"><thead><tr><th class="sticky-col employee-sticky">Empleado</th>${Array.from({length:days},(_,i)=>{const d=i+1,dt=new Date(`${isoDate(period,d)}T12:00:00`);return `<th>${dt.toLocaleDateString('es-AR',{weekday:'short'}).replace('.','')}<small>${d}</small></th>`}).join('')}${weeks.map((w,i)=>`<th>SEM ${i+1}<small>${w.start}-${w.end}</small></th>`).join('')}<th>HORAS</th><th>ADELANTOS</th><th>MERCADERÍA</th><th>FERIADO</th><th>LIQ.</th></tr></thead><tbody>${grid||`<tr><td colspan="${days+weeks.length+6}" class="empty">No hay empleados asignados a ${esc(branch)}.</td></tr>`}</tbody><tfoot><tr><th class="sticky-col">TOTAL DÍA</th>${footer}${weeks.map(w=>`<th>${number(data.filter(x=>Number(x.date.slice(-2))>=w.start&&Number(x.date.slice(-2))<=w.end).reduce((s,x)=>s+Number(x.hours||0),0))}</th>`).join('')}<th>${number(data.reduce((s,x)=>s+Number(x.hours||0),0))}</th><th>${money(data.reduce((s,x)=>s+Number(x.advance||0),0))}</th><th>${money(data.reduce((s,x)=>s+Number(x.merchandise||0),0))}</th><th>${number(data.filter(x=>x.holiday==='yes').reduce((s,x)=>s+Number(x.hours||0),0))}</th><th>—</th></tr></tfoot></table></div></section>
+ <section class="panel"><div class="panel-head"><div><span class="section-kicker">REFERENCIA DE CARGA</span><h3>Valores permitidos en la celda</h3></div></div><div class="legend-row"><span><b>8</b> horas</span><span><b>F</b> / <b>franco</b> descanso</span><span><b>H</b> marca feriado y calcula con tarifa feriado</span><span>Enter guarda y avanza</span></div></section>`;
+}
+
+function renderResults(content,period,branch="General"){
+ const s=Store.summary(period,branch); const byCat=CONFIG.expenseCategories.map(c=>[c,rows('expenses',period,branch).filter(x=>x.category===c).reduce((a,x)=>a+Number(x.amount||0),0)]).filter(x=>x[1]);
+ content.innerHTML=`<div class="profile-bar"><div><span class="section-kicker">RESULTADOS</span><b>${esc(branch)}</b><small>Ingresos, gastos, proveedores, inversiones y personal separados.</small></div><div class="profile-chips">${branchFilter(branch)}</div></div><div class="page-intro"><div><h2>Resultado mensual</h2><p>El resultado se calcula con la estructura real del negocio.</p></div><button class="secondary-button" data-pdf-close="results">Descargar PDF</button></div><div class="result-grid">${[['Ingresos',s.income,'good'],['Gastos operativos',s.totalExpenses,s.result>=0?'':'bad'],['Proveedores',s.providers,''],['Inversiones',s.investment,''],['Personal estimado',s.salary,''],['Resultado',s.result,s.result>=0?'good':'bad']].map(x=>`<div class="result-card"><span>${x[0]}</span><strong class="${x[2]}">${money(x[1])}</strong><p>${x[0]==='Resultado'?'Ingresos menos gastos operativos, inversión y costo estimado de horas.':''}</p></div>`).join('')}</div><section class="panel"><div class="panel-head"><div><span class="section-kicker">GASTOS</span><h3>Distribución por categoría</h3></div></div>${table(['Categoría','Monto','% de gastos'],byCat.map(([c,v])=>`<tr><td><b>${esc(c)}</b></td><td>${money(v)}</td><td>${s.totalExpenses?((v/s.totalExpenses)*100).toFixed(1):0}%</td></tr>`).join(''))}</section>`;
+}
+
+function renderCompare(content,period,branch="General",compareA=prevPeriod(period),compareB=period){
+ const periods=[...new Set([period,prevPeriod(period),...Store.db.periods.map(x=>x.id)])].sort().reverse();
+ const calc=p=>Store.summary(p,branch); const a=calc(compareA),b=calc(compareB); const pct=(x,y)=>x===0?(y===0?0:100):((y-x)/Math.abs(x))*100; const line=(l,x,y)=>`<tr><td><b>${l}</b></td><td>${money(x)}</td><td>${money(y)}</td><td>${money(y-x)}</td><td class="${y-x>=0?'up':'down'}">${pct(x,y)>=0?'+':''}${pct(x,y).toFixed(1)}%</td></tr>`;
+ content.innerHTML=`<div class="page-intro"><div><span class="section-kicker">COMPARATIVAS</span><h2>Comparación de períodos</h2><p>Elegí dos meses distintos; también podés ver la evolución de seis meses.</p></div><button class="secondary-button" data-pdf-close="compare">Descargar PDF</button></div><div class="compare-controls"><label>Período A<select data-compare-select="a">${periods.map(p=>`<option value="${p}" ${p===compareA?'selected':''}>${periodLabel(p)}</option>`).join('')}</select></label><span>vs.</span><label>Período B<select data-compare-select="b">${periods.map(p=>`<option value="${p}" ${p===compareB?'selected':''}>${periodLabel(p)}</option>`).join('')}</select></label></div><div class="profile-bar compact"><div><b>Perfil: ${esc(branch)}</b></div><div class="profile-chips">${branchFilter(branch)}</div></div>${table(['Indicador',periodLabel(compareA),periodLabel(compareB),'Diferencia','Variación'],[line('Ingresos',a.income,b.income),line('Gastos',a.totalExpenses,b.totalExpenses),line('Resultado',a.result,b.result),line('Proveedores',a.providers,b.providers),line('Inversiones',a.investment,b.investment),line('Horas',a.hours,b.hours)].join(''))}<section class="panel"><div class="panel-head"><div><span class="section-kicker">EVOLUCIÓN</span><h3>Últimos 6 meses desde ${periodLabel(compareB)}</h3></div></div><div class="bar-chart">${Array.from({length:6},(_,i)=>{const [y,m]=compareB.split('-').map(Number);const d=new Date(y,m-1-i,1),p=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`,s=calc(p);return `<div class="bar-item"><div class="bar-track"><div class="bar-fill" style="height:${Math.min(100,Math.abs(s.result)/(Math.max(1,...Array.from({length:6},(_,j)=>{const dd=new Date(y,m-1-j,1),pp=`${dd.getFullYear()}-${String(dd.getMonth()+1).padStart(2,'0')}`;return Math.abs(calc(pp).result)})))*100)}%"></div></div><b>${p.slice(5)}</b><span>${money(s.result)}</span></div>`}).reverse().join('')}</div></section>`;
+}
+
+function renderTasks(content){const all=Store.list('tasks').sort((a,b)=>`${a.dueDate} ${a.dueTime}`.localeCompare(`${b.dueDate} ${b.dueTime}`));const pending=all.filter(x=>x.status!=='completed'),done=all.filter(x=>x.status==='completed');content.innerHTML=`<div class="page-intro"><div><span class="section-kicker">CENTRO DE ATENCIÓN</span><h2>Recordatorios</h2><p>Las tareas viven dentro de Blunno. Completar una tarea también queda auditado.</p></div><button class="primary-button" data-new="task">＋ Nuevo recordatorio</button></div><div class="task-columns"><section class="panel"><h3>Pendientes</h3>${pending.map(t=>taskCard(t)).join('')||'<div class="empty-block">No hay tareas pendientes.</div>'}</section><section class="panel"><h3>Completadas</h3>${done.slice(0,20).map(t=>taskCard(t,true)).join('')||'<div class="empty-block">Todavía no hay tareas completadas.</div>'}</section></div>`}
+function taskCard(t,done=false){return `<div class="task-card ${t.priority==='urgent'?'urgent':''}"><div><span class="priority ${t.priority}">${esc(t.priority||'normal')}</span><b>${esc(t.title)}</b><small>📅 ${dateLabel(t.dueDate)} ${esc(t.dueTime||'')} · 👤 ${esc(t.responsible)}</small></div>${done?`<div class="row-actions"><span class="status-pill success">REALIZADA</span><button class="danger-link" data-delete="tasks" data-id="${esc(t.id)}">Borrar</button></div>`:`<button class="primary-button" data-complete-task="${t.id}">✓ Realizada</button>`}</div>`}
+
+function renderAgent(content){
+ const recent=Store.db.audit.filter(x=>x.collection!=='settings').slice(0,12); const person=localStorage.getItem('blunno-agent-person')||''; let history=[];try{history=JSON.parse(localStorage.getItem(`blunno-agent-chat-${person||'sin-usuario'}`)||'[]')}catch(e){} const messages=history.slice(-40).map(m=>`<div class="agent-message ${m.who==='user'?'user':'bot'}">${m.html}</div>`).join('');
+ content.innerHTML=`<section class="agent-hero"><div><span class="hero-tag">AGENTE BLUNNO · CENTRO OPERATIVO</span><h2>Entiende, consulta y actúa con confirmación.</h2><p>Consulta caja, gastos, facturas, horas, resultados y cierre. Las modificaciones siempre muestran lo que se va a guardar y exigen confirmación.</p></div><div class="agent-badge">● CONFIRMACIÓN OBLIGATORIA</div></section>
+ <section class="agent-grid"><div class="panel agent-chat"><div class="agent-statusbar"><span>Usuario actual</span><b id="agentCurrentPerson">${esc(person||'Elegir')}</b></div><div id="agentMessages" class="agent-messages">${messages||`<div class="agent-message bot"><b>Agente BLUNNO</b><span>¿Con quién estoy hablando?</span><div class="person-buttons">${CONFIG.responsiblePeople.map(p=>`<button data-agent-person="${p}">${p}</button>`).join('')}</div></div>`}</div><div class="agent-suggestions"><button data-agent-prompt="¿Cuánto gastamos este mes?">Resumen del mes</button><button data-agent-prompt="¿Qué facturas están cargadas?">Facturas cargadas</button><button data-agent-prompt="Prepará el cierre del mes">Preparar cierre</button><button data-agent-prompt="¿Cuántas horas cargamos?">Horas</button><button data-agent-prompt="¿Cuál es el saldo final de caja?">Saldo de caja</button></div><div class="agent-input"><input id="agentInput" placeholder="Escribí una consulta u orden…"><button id="agentMic" class="icon-button" title="Dictar">🎙</button><button id="agentSend" class="primary-button">Enviar</button></div></div><div class="panel"><span class="section-kicker">TRAZABILIDAD</span><h3>Actividad reciente</h3>${recent.map(x=>`<div class="activity"><div class="activity-dot"></div><div><b>${esc(x.action)}</b><span>${esc(x.responsible)} · ${dateTimeLabel(x.at)}</span></div></div>`).join('')||'<div class="empty-block">Sin actividad.</div>'}</div></section>`;
+}
+
+function renderClose(content,period,branch="General"){
+ if(branch==='General'){
+  const rows=CONFIG.branches.map(b=>{const ss=Store.summary(period,b);const closed=Store.periodIsClosed(period,b);return `<div class="close-summary"><div><span>${esc(b)}</span><b>${closed?'CERRADO':'ABIERTO'}</b></div><div><span>Resultado</span><b>${money(ss.result)}</b></div><div><span>Facturas</span><b>${ss.invoiceCount}</b></div></div>`}).join('');
+  content.innerHTML=`<div class="page-intro"><div><span class="section-kicker">CIERRE CONSOLIDADO</span><h2>General es una vista de consulta</h2><p>El cierre mensual se realiza por sucursal. General consolida el estado sin crear, modificar ni reemplazar cierres de las sucursales.</p></div></div><section class="panel"><div class="panel-head"><div><span class="section-kicker">ESTADO DEL MES</span><h3>${periodLabel(period)}</h3></div></div>${rows}</section>`; return;
+ }
+ const s=Store.summary(period,branch),closed=Store.periodIsClosed(period,branch);
+ const versions=Store.db.closures.filter(x=>x.period===period&&x.branch===branch).sort((a,b)=>Number(b.version||0)-Number(a.version||0));
+ const invoices=Store.list('invoices',period,branch), expenses=Store.list('expenses',period,branch), investments=Store.list('investments',period,branch), employees=Store.list('employees').filter(e=>e.active!==false&&(branch==='General'||e.branch===branch)), hours=Store.list('hours',period,branch);
+ const late=invoices.filter(x=>String(x.loadDate||x.createdAt).slice(0,7)>period);
+ const missingInvoice=invoices.filter(x=>!x.provider||!Number.isFinite(Number(x.amount))||!x.branch);
+ const missingExpense=expenses.filter(x=>!x.category||!Number.isFinite(Number(x.amount))||!x.branch);
+ const missingInvestment=investments.filter(x=>!x.concept||!Number.isFinite(Number(x.amount))||!x.branch);
+ const noHours=employees.filter(e=>!hours.some(h=>h.employeeId===e.id));
+ const noLiquidation=employees.filter(e=>hours.some(h=>h.employeeId===e.id)&&!Store.list('liquidations',period,branch).some(l=>l.employeeId===e.id));
+ const checklist=[
+  ['Caja diaria',true,`${s.cashCount} movimientos · resto final ${money(s.cashFinal)}`],
+  ['Ingresos',true,`${Store.list('incomes',period,branch).length} movimientos · ${money(s.income)}`],
+  ['Proveedores / facturas',missingInvoice.length===0,`${s.invoiceCount} facturas · ${missingInvoice.length?missingInvoice.length+' requieren revisión':'sin datos obligatorios faltantes'}`],
+  ['Gastos del local',missingExpense.length===0,`${s.expenseCount} gastos · ${missingExpense.length?missingExpense.length+' requieren revisión':'controlados'}`],
+  ['Inversiones',missingInvestment.length===0,`${s.investmentCount} inversiones · ${missingInvestment.length?missingInvestment.length+' requieren revisión':'controladas'}`],
+  ['Horas',noHours.length===0,`${number(s.hours)} horas · ${noHours.length?noHours.length+' empleados sin carga':'carga registrada'}`],
+  ['Liquidaciones',noLiquidation.length===0,`${s.liquidationCount} liquidaciones vigentes · ${noLiquidation.length?noLiquidation.length+' empleados pendientes':'sin pendientes'}`],
+  ['Facturas posteriores al cierre',late.length===0,late.length?`${late.length} factura(s) cargada(s) después del período`:'No se detectaron cargas posteriores'],
+  ['Período abierto',!closed,closed?'Ya existe un cierre vigente':'Listo para cerrar']
+ ];
+ const blockers=checklist.filter(x=>!x[1]);
+ content.innerHTML=`<div class="profile-bar"><div><span class="section-kicker">CIERRE MENSUAL CONTROLADO</span><b>${esc(branch)}</b><small>El cierre es manual y versionado. Las correcciones posteriores quedan como una nueva versión.</small></div><div class="profile-chips">${branchFilter(branch)}</div></div>
+ <div class="close-status ${closed?'closed':'open'}"><div><span>ESTADO</span><strong>${closed?'CERRADO':'ABIERTO'}</strong></div><div><span>VERSIÓN ACTUAL</span><strong>${versions[0]?.version||0}</strong></div><div><span>RESULTADO</span><strong>${money(s.result)}</strong></div><div><span>RESPONSABLE</span><strong>${esc(versions[0]?.responsible||'Sin cerrar')}</strong></div></div>
+ <section class="panel"><div class="panel-head"><div><span class="section-kicker">CENTRO DE CONTROL MENSUAL</span><h3>Estado del período</h3></div>${closed?'<button class="secondary-button" data-reopen-period="1">Reabrir con motivo</button>':'<button class="primary-button" data-close-period="1" '+(blockers.length?'disabled title="Hay controles bloqueantes pendientes"':'')+'>Cerrar y generar PDF</button>'}</div><div class="close-check-grid">${checklist.map(([name,ok,detail])=>`<div class="close-check ${ok?'ok':'block'}"><div class="check-icon">${ok?'✓':'!'}</div><div><b>${esc(name)}</b><span>${esc(detail)}</span></div><strong>${ok?'OK':'REVISAR'}</strong></div>`).join('')}</div>${blockers.length?`<div class="notice danger-box">Hay ${blockers.length} controles que requieren revisión antes de cerrar.</div>`:'<div class="notice success">✓ El control previo no encontró bloqueos.</div>'}</section>
+ <section class="panel"><div class="panel-head"><div><span class="section-kicker">FOTOGRAFÍA</span><h3>Totales del cierre</h3></div></div><div class="close-summary"><div><span>Ingresos</span><b>${money(s.income)}</b></div><div><span>Gastos del local</span><b>${money(s.localExpense)}</b></div><div><span>Proveedores</span><b>${money(s.providers)}</b></div><div><span>Inversiones</span><b>${money(s.investment)}</b></div><div><span>Personal</span><b>${money(s.salary)}</b></div><div><span>Resultado</span><b>${money(s.result)}</b></div><div><span>Caja diaria</span><b>Separada</b></div></div></section>
+ <section class="panel"><div class="panel-head"><div><span class="section-kicker">VERSIONES DEL CIERRE</span><h3>Historial completo</h3></div></div>${versions.map(v=>`<div class="version-row"><div><b>Versión ${v.version}</b><span>${dateTimeLabel(v.closedAt)} · ${esc(v.responsible)} · ${esc(v.status)}</span></div><strong>${money(v.summary?.result)}</strong><button class="secondary-button" data-close-version="${v.id}">PDF</button></div>`).join('')||'<div class="empty-block">Todavía no hay cierres registrados.</div>'}</section>`;
+}
+
+function renderFiles(content,period,branch="General"){
+ const allFiles=Store.list('files').sort((a,b)=>String(b.createdAt).localeCompare(String(a.createdAt)));
+ const files=allFiles.filter(f=>branch==='General'||f.branch===branch);
+ const groups=new Map();
+ for(const f of files){const dt=String(f.period||period), year=dt.slice(0,4)||'Sin año', month=dt.slice(5,7)||'00', key=`${year}|${month}|${f.branch||'General'}|${f.sector||'Documento'}`;if(!groups.has(key))groups.set(key,[]);groups.get(key).push(f);}
+ const groupHtml=[...groups.entries()].map(([key,items])=>{const [year,month,b,se]=key.split('|');return `<details class="file-folder" open><summary><span>📁 ${esc(year)} / ${esc(periodLabel(`${year}-${month}`))} / ${esc(b)} / ${esc(se)}</span><b>${items.length}</b></summary><div class="file-grid">${items.map(f=>{const integrity=Store.fileIntegrity(f);return `<article class="file-card"><div class="file-type">📄 ${esc(f.mime||'PDF')}</div><h3>${esc(f.name)}</h3><p>${esc(f.sector||'Documento')} · ${esc(f.branch||'General')} · ${periodLabel(f.period||period)}</p><div class="file-meta"><span>Generado: ${dateTimeLabel(f.createdAt)}</span><span>Responsable: ${esc(f.responsible||'—')}</span><span>Versión: ${esc(f.version||1)}</span><span>Ruta: ${esc(f.storagePath||'local/archivos')}</span></div><div class="file-integrity ${integrity.status==='ok'?'ok':integrity.status==='anterior'?'warning':'neutral'}">${integrity.status==='ok'?'✓ Integridad vigente':integrity.status==='anterior'?'⚠ Documento anterior al último cambio':'• Sin comparación de origen'}</div><div class="row-actions"><button class="secondary-button" data-view-file="${esc(f.id)}">Ver</button><button class="primary-button" data-download-file="${esc(f.id)}">Descargar</button><button class="secondary-button" data-print-file="${esc(f.id)}">Imprimir</button><button class="danger-link" data-delete="files" data-id="${esc(f.id)}">Papelera</button></div></article>`}).join('')}</div></details>`}).join('')||'<div class="empty-block">No hay documentos para este contexto.</div>';
+ content.innerHTML=`<div class="page-intro"><div><span class="section-kicker">REPOSITORIO DOCUMENTAL</span><h2>Archivos</h2><p>Organizados por año, mes, sucursal y sector. Cada archivo conserva ficha documental, versión, ubicación e integridad.</p></div><button class="secondary-button" data-view-jump="import">Importar / backup</button></div><div class="file-filters"><span>${files.length} documentos visibles</span><span>${allFiles.length} documentos en el repositorio local</span><span>Perfil: ${esc(branch)} · ${periodLabel(period)}</span></div>${groupHtml}`;
+}
+
+function renderHistory(content){
+ const data=Store.db.audit;
+ content.innerHTML=`<div class="page-intro"><div><span class="section-kicker">AUDITORÍA PERMANENTE</span><h2>Historial y trazabilidad</h2><p>Fecha, hora, minuto, responsable, sector, sucursal, período, acción, registro afectado y antes/después. La auditoría no se elimina.</p></div><button class="secondary-button" id="exportAudit">Exportar auditoría</button><button class="secondary-button" data-pdf-close="history">PDF</button></div>${table(['Fecha / hora','Acción','Sector','Sucursal','Período','Responsable','Registro','Cambios'],data.map(x=>`<tr><td>${dateTimeLabel(x.at)}</td><td><span class="audit-action">${esc(x.action)}</span></td><td>${esc(x.sector||x.collection)}</td><td>${esc(x.branch||'—')}</td><td>${x.period?esc(periodLabel(x.period)):'—'}</td><td>${esc(x.responsible||'—')}</td><td>${esc(x.collection)} · ${esc(x.recordId)}</td><td><details><summary>Ver</summary><pre class="audit-pre">${esc(JSON.stringify({antes:x.before,despues:x.after},null,2))}</pre></details></td></tr>`).join(''))}`;
+}
+
+function renderTrash(content){
+ const data=Store.trash().sort((a,b)=>String(b.deletedAt).localeCompare(String(a.deletedAt)));
+ content.innerHTML=`<div class="page-intro"><div><span class="section-kicker">PAPELERA SEGURA</span><h2>Elementos eliminados</h2><p>Los registros permanecen 30 días. Podés seleccionar varios para restaurarlos o eliminarlos definitivamente. La eliminación definitiva también queda auditada.</p></div></div>
+ <div class="trash-toolbar"><div><b>${data.length}</b><span> elementos en papelera</span></div><div><button class="secondary-button" id="trashRestoreSelected" ${data.length?'':'disabled'}>↶ Restaurar seleccionados</button><button class="danger-button" id="trashPurgeSelected" ${data.length?'':'disabled'}>Eliminar definitivamente</button><button class="danger-link" id="trashEmpty" ${data.length?'':'disabled'}>Vaciar papelera</button></div></div>
+ ${table(['<input type="checkbox" id="trashSelectAll">','Sector','Registro','Eliminado','Responsable','Vence','Acciones'],data.map(x=>{const expires=new Date(new Date(x.deletedAt).getTime()+30*86400000);return `<tr><td><input type="checkbox" class="trash-select" data-collection="${esc(x._collection)}" data-id="${esc(x.id)}"></td><td>${esc(x._collection)}</td><td><b>${esc(x.name||x.concept||x.title||x.provider||x.id)}</b></td><td>${dateTimeLabel(x.deletedAt)}</td><td>${esc(x.responsible||'—')}</td><td>${dateTimeLabel(expires.toISOString())}</td><td><button class="secondary-button" data-restore="${esc(x._collection)}" data-id="${esc(x.id)}">Restaurar</button><button class="danger-link" data-purge="${esc(x._collection)}" data-id="${esc(x.id)}">Eliminar</button></td></tr>`}).join(''))}`;
+}
+
+function renderImport(content){content.innerHTML=`<div class="page-intro"><div><span class="section-kicker">EXCEL / RESPALDOS</span><h2>Importar, exportar y sincronizar</h2><p>Excel puede seguir siendo la herramienta diaria. La web registra la importación con origen, responsable y cambios.</p></div></div><div class="import-grid"><section class="panel"><span class="section-kicker">PLANIFICACIÓN</span><h3>Sincronizar Excel de horas</h3><p>Reconoce hojas por empleado y fechas. Si un dato no puede interpretarse, queda para revisión: no se inventa información.</p><input id="excelInput" type="file" accept=".xlsx,.xls,.csv" class="file-input"><div id="importPreview"></div></section><section class="panel"><span class="section-kicker">RESPALDOS</span><h3>Seguridad</h3><p>Generá una copia completa o restaurá un respaldo después de confirmarlo. Los documentos guardados localmente también forman parte del paquete.</p><div class="backup-actions"><button class="secondary-button" id="backupZipButton">Descargar backup completo ZIP</button><button class="secondary-button" id="backupButton">Descargar datos JSON</button><button class="secondary-button" id="exportExcelButton">Exportar Excel Blunno</button><label class="secondary-button file-button-label">Restaurar datos JSON<input id="backupRestoreInput" type="file" accept=".json,application/json" hidden></label></div></section></div><section class="panel"><span class="section-kicker">SINCRONIZACIÓN REAL</span><h3>Control doble</h3><p>El navegador no puede vigilar silenciosamente un archivo local de Windows. Esta versión evita duplicados mediante una clave de origen; para sincronización automática permanente se puede conectar una fuente documental externa.</p></section>`}
+
+function renderPeriodModal(){return Store.db.periods.slice().sort((a,b)=>String(b.id).localeCompare(String(a.id)));}
+function renderView(view,content,period,branch="General",compareA=prevPeriod(period),compareB=period){
+ const map={dashboard:renderDashboard,income:renderIncome,cash:renderCash,providers:renderProviders,invoices:renderInvoices,expenses:renderExpenses,investments:renderInvestments,people:renderPeople,hours:renderHours,results:renderResults,compare:renderCompare,tasks:renderTasks,agent:renderAgent,close:renderClose,files:renderFiles,history:renderHistory,trash:renderTrash,import:renderImport};
+ if(view==="compare") return renderCompare(content,period,branch,compareA,compareB);
+ (map[view]||renderDashboard)(content,period,branch);
+}
+
+__BLUNNO_MODULES.views = { esc, formSchema, renderDashboard, renderCash, renderIncome, renderProviders, renderInvoices, renderExpenses, renderInvestments, renderPeople, renderHours, renderResults, renderCompare, renderTasks, renderAgent, renderClose, renderFiles, renderHistory, renderTrash, renderImport, renderPeriodModal, renderView };
+})();
+
+// ===== MAIN WEB =====
+(() => {
+
+const { CONFIG, periodLabel, nextPeriod, prevPeriod, dateLabel, dateTimeLabel, today, now, daysInPeriod, isoDate, money, number } = __BLUNNO_MODULES.config;
+const { Store } = __BLUNNO_MODULES.store;
+const { firebaseEnabled, uploadFile } = __BLUNNO_MODULES.firebase;
+const { formSchema, renderView, esc } = __BLUNNO_MODULES.views;
+const { createSimplePDF } = __BLUNNO_MODULES.pdf;
+
+const $ = s => document.querySelector(s);
+const content = $("#content");
+let view = "dashboard";
+let period = CONFIG.defaultPeriod;
+let branch = "General";
+let editing = null;
+let currentOperator = "";
+let agentPerson = "";
+let pendingAgent = null;
+let compareA = prevPeriod(CONFIG.defaultPeriod);
+let compareB = CONFIG.defaultPeriod;
+const viewHistory = [];
+const viewForward = [];
+let pdfDownloadBlob = null;
+let pdfDownloadName = "documento-blunno.pdf";
+
+function slugPath(value){return String(value||'general').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-zA-Z0-9]+/g,'-').replace(/^-|-$/g,'').toLowerCase()||'general';}
+function storagePathFor(periodValue,branchValue,sectorValue,fileName){const [y,m]=String(periodValue||today()).split('-');return `blunno/${y}/${m}/${slugPath(branchValue)}/${slugPath(sectorValue)}/${fileName}`;}
+
+const titles = {
+ dashboard:"Panel general", income:"Ingresos", cash:"Caja diaria", providers:"Proveedores", invoices:"Facturas", expenses:"Gastos por categoría", investments:"Gastos de inversión",
+ people:"Personal", hours:"Horas mensuales", results:"Resultados", compare:"Comparativas", tasks:"Recordatorios", agent:"Agente BLUNNO", close:"Cierre mensual", files:"Archivos", history:"Historial", trash:"Papelera", import:"Excel / Backup"
+};
+
+const toast = (message, ok=true) => {
+  const el=$("#toast"); el.textContent=message; el.className=`toast show ${ok?'ok':'bad'}`;
+  clearTimeout(window.__blunnoToast); window.__blunnoToast=setTimeout(()=>el.className='toast',3800);
+};
+
+function setOperator(name) {
+  if (name && !CONFIG.responsiblePeople.includes(name)) { toast('Responsable inválido.',false); return; }
+  currentOperator = name || "";
+  window.__blunnoResponsible = currentOperator;
+  localStorage.removeItem("blunno-operator");
+  const label=$("#operatorLabel"); if(label) label.textContent=currentOperator || "Elegir responsable"; const selector=$("#operatorSelector"); if(selector) selector.value=currentOperator;
+}
+
+function setBranch(name) {
+  branch = CONFIG.profiles.includes(name) ? name : "General";
+  window.__blunnoBranch = branch;
+  refresh();
+}
+
+function navigate(nextView){ if(nextView===view) return; viewHistory.push(view); viewForward.length=0; view=nextView; refresh(); }
+function goBack(){ const previous=viewHistory.pop(); if(previous){ viewForward.push(view); view=previous; refresh(); } else { view="dashboard"; refresh(); } }
+function goForward(){ const next=viewForward.pop(); if(next){ viewHistory.push(view); view=next; refresh(); } }
+
+function connection() {
+  $("#connectionDot").className=firebaseEnabled?'connected':'local';
+  $("#connectionText").textContent=firebaseEnabled?'Firebase + nube':'Modo local';
+  $("#userText").textContent=firebaseEnabled?'Autenticación habilitada':'Configurar Firebase para nube y archivos permanentes';
+}
+
+function refresh(){
+  window.__blunnoBranch = branch;
+  $("#pageTitle").textContent=titles[view]||"Blunno";
+  document.title = `BLUNNO · ${titles[view]||"Control Empresarial"}`;
+  const ctx=$("#webContextLabel"); if(ctx) ctx.textContent=`${branch} · ${periodLabel(period)}`;
+  const conn=$("#webConnectionLabel"); if(conn) conn.textContent=firebaseEnabled?"Firebase conectado":"Modo local";
+  renderView(view,content,period,branch,compareA,compareB);
+  wire();
+  $("#periodSelector").textContent=periodLabel(period);
+  $("#periodState").textContent=Store.periodIsClosed(period,branch)?"CERRADO":"ABIERTO";
+  $("#periodDot").className=Store.periodIsClosed(period,branch)?"closed":"open";
+  $("#branchSelector").value=branch;
+  document.querySelectorAll('.nav-item').forEach(b=>b.classList.toggle('active',b.dataset.view===view));
+  const back=$("#backBtn"); if(back) back.disabled=viewHistory.length===0 && view==="dashboard"; const forward=$("#forwardBtn"); if(forward) forward.disabled=viewForward.length===0;
+  checkReminders();
+}
+
+function fieldHtml([n,label,type,options], data) {
+  let control="";
+  if(type==='select') control=`<select name="${n}">${(n==='branch'?'<option value="">Elegir sucursal…</option>':'')}${options.map(v=>{const a=Array.isArray(v)?v:[v,v];return `<option value="${esc(a[0])}">${esc(a[1])}</option>`}).join('')}</select>`;
+  else if(type==='textarea') control=`<textarea name="${n}" rows="3"></textarea>`;
+  else if(type==='checkbox') control=`<input name="${n}" type="checkbox" class="checkbox-input">`;
+  else control=`<input name="${n}" type="${type}" ${type==='number'?'step="0.01" min="0"':''}>`;
+  return `<label class="field ${type==='checkbox'?'checkbox-field':''}">${esc(label)}${control}</label>`;
+}
+
+function openModal(type,id=null){
+  const branchScoped=['employee','invoice','cash','expense','investment','income','hours'];
+  if(branch==='General' && branchScoped.includes(type)){ toast('General es solo una vista consolidada. Elegí una sucursal concreta para modificar este sector.',false); return; }
+  const map={provider:'providers',employee:'employees',invoice:'invoices',cash:'cash',expense:'expenses',investment:'investments',task:'tasks',income:'incomes'};
+  const col=map[type]||type; editing=id?Store.get(col,id):null;
+  const schema=formSchema[type]; if(!schema) return;
+  $("#modalKicker").textContent=editing?'EDICIÓN CONTROLADA':'NUEVO REGISTRO';
+  $("#modalTitle").textContent=editing?'Editar registro':'Nuevo registro';
+  $("#formFields").innerHTML=schema.map(x=>fieldHtml(x,editing)).join('');
+  for(const [n] of schema){const el=$("#formFields [name=\""+n+"\"]"); if(!el) continue; if(editing?.[n]!==undefined){if(el.type==='checkbox')el.checked=!!editing[n];else if(el.type==='date')el.value=String(editing[n]||'').slice(0,10);else el.value=editing[n];}}
+  const d=$("#formFields [name=date]"); if(d&&!editing)d.value=today();
+  const branchField=$("#formFields [name=branch]"); if(branchField&&!editing&&branch!=="General")branchField.value=branch;
+  const op=$("#recordResponsible"); op.value=currentOperator; op.disabled=!!currentOperator; op.title=currentOperator?'Se mantiene el responsable seleccionado para esta sesión.':'';
+  $("#recordForm").dataset.type=type;
+  $("#modal").classList.remove('hidden');
+  $("#formFields input,#formFields select,#formFields textarea")[0]?.focus();
+  wireProviderDatalist();
+}
+function closeModal(){$("#modal").classList.add('hidden');editing=null;}
+
+async function saveRecord(e){
+  e.preventDefault();
+  const form=e.target;
+  if(form.dataset.saving==='1')return;
+  form.dataset.saving='1';
+  const submit=form.querySelector('button[type="submit"]'); if(submit){submit.disabled=true;submit.dataset.originalText=submit.textContent;submit.textContent='Guardando…';}
+  const type=form.dataset.type;
+  const responsible=currentOperator || $("#recordResponsible").value;
+  try{
+    if(!CONFIG.responsiblePeople.includes(responsible)) throw new Error('Elegí Agus, Nico, Luz o Flor como responsable.');
+    const raw=Object.fromEntries(new FormData(form).entries());
+    const data={...raw};
+    for(const k of ['amount','expected','hourlyRate','hours','advance','merchandise']) if(k in data) data[k]=Number(data[k]||0);
+    if(type==='hours'){
+      const emp=Store.list('employees').find(x=>x.name.toLowerCase()===String(data.employee||'').toLowerCase());
+      if(!emp) throw new Error('No se encontró el empleado. Usá el nombre exacto de la ficha de Personal.');
+      data.employeeId=emp.id; data.employee=emp.name; data.branch=emp.branch; data.period=(data.date||today()).slice(0,7);
+      data.salaryCost=Number(data.hours||0)*Number(emp.hourlyRate||0);
+    }
+    if('lateMovement' in data) data.lateMovement=$("#formFields [name=lateMovement]")?.checked===true;
+    if(type==='invoice'){
+      data.period=(data.operationDate||today()).slice(0,7);
+      data.loadDate=editing?.loadDate || now();
+      data.status='CARGADA';
+      delete data.paidAmount; delete data.dueDate;
+    }
+    if(['cash','expense','investment','income'].includes(type)) data.period=(data.date||today()).slice(0,7);
+    if(type==='cash') data.branch=data.branch==='General'?branch:data.branch;
+    if(type==='income') data.branch=data.branch==='General'?branch:data.branch;
+    if(['expense','investment','income','cash','invoice','employee'].includes(type) && !data.branch) throw new Error('Seleccioná una sucursal concreta.');
+    if(['expense','investment','income','cash','invoice'].includes(type) && data.branch==='General') throw new Error('General es solo una vista consolidada.');
+    if(type==='task') data.status=editing?.status||'pending';
+    if(type==='employee') data.active=data.active!=='false';
+    const shouldBeLate = ['invoices','incomes','expenses','investments','cash'].includes({provider:'providers',employee:'employees',invoice:'invoices',cash:'cash',hours:'hours',expense:'expenses',investment:'investments',income:'incomes',task:'tasks'}[type]) && data.period && data.branch && Store.periodIsClosed(data.period,data.branch);
+    if (shouldBeLate && !data.lateMovement) {
+      const action = editing ? 'modificar' : 'agregar';
+      const ok = confirm(`El período económico ${data.period} está cerrado para ${String(data.branch).toUpperCase()}.\n\nEsta acción quedará registrada como movimiento posterior al cierre y generará una nueva versión del cierre.\n\n¿Querés ${action} este registro?`);
+      if (!ok) return;
+      data.lateMovement = true;
+    } else {
+      data.lateMovement=!!data.lateMovement || shouldBeLate;
+    }
+    const collection={provider:'providers',employee:'employees',invoice:'invoices',cash:'cash',hours:'hours',expense:'expenses',investment:'investments',income:'incomes',task:'tasks'}[type];
+    if(!collection) throw new Error('Tipo de registro inválido.');
+    if(editing) await Store.update(collection,editing.id,data,responsible,'Edición controlada desde formulario',{lateMovement:data.lateMovement});
+    else await Store.add(collection,data,responsible,'Alta controlada desde formulario',{lateMovement:data.lateMovement});
+    if(data.lateMovement && data.period && data.branch){
+      const latest=Store.db.closures.filter(x=>x.period===data.period&&x.branch===data.branch&&x.status==='closed').sort((a,b)=>Number(b.version||0)-Number(a.version||0))[0];
+      if(latest) await generateClosurePDF(latest);
+    }
+    closeModal();
+    toast(data.lateMovement?'Movimiento tardío guardado; el cierre quedó versionado.':(editing?'Cambios guardados y auditados.':'Guardado con éxito.'));
+    refresh();
+  }catch(err){ toast(err.message||'No se pudo guardar el registro.',false); }
+  finally{ form.dataset.saving='0'; if(submit){submit.disabled=false;submit.textContent=submit.dataset.originalText||'Guardar y auditar';} }
+}
+function wireProviderDatalist(){
+  const inputs=[...document.querySelectorAll('input[name=provider],input[name=name]')];
+  inputs.forEach(i=>{ if(i.name!=='provider' && !$("#recordForm")?.dataset.type?.includes('invoice')) return; i.setAttribute('list','providerList'); });
+  let dl=$("#providerList"); if(!dl){dl=document.createElement('datalist');dl.id='providerList';document.body.appendChild(dl)}
+  dl.innerHTML=Store.list('providers').filter(x=>x.active!==false).sort((a,b)=>a.name.localeCompare(b.name,'es')).map(x=>`<option value="${esc(x.name)}"></option>`).join('');
+}
+
+function wire(){
+  document.querySelectorAll('[data-new]').forEach(b=>b.onclick=()=>openModal(b.dataset.new));
+  document.querySelectorAll('[data-edit]').forEach(b=>b.onclick=()=>openModal(b.dataset.edit,b.dataset.id));
+  document.querySelectorAll('[data-delete]').forEach(b=>b.onclick=()=>deleteRecord(b.dataset.delete,b.dataset.id));
+  document.querySelectorAll('[data-bulk-select-all]').forEach(b=>b.onchange=()=>document.querySelectorAll(`[data-bulk-select="${b.dataset.bulkSelectAll}"]`).forEach(x=>x.checked=b.checked));
+  document.querySelectorAll('[data-bulk-delete]').forEach(b=>b.onclick=()=>bulkDelete(b.dataset.bulkDelete));
+  document.querySelectorAll('[data-restore]').forEach(b=>b.onclick=()=>restoreRecord(b.dataset.restore,b.dataset.id));
+  document.querySelectorAll('[data-profile]').forEach(b=>b.onclick=()=>{const next=b.dataset.profile;if(next===branch)return;if(confirm(`Estás cambiando el contexto de trabajo a ${String(next).toUpperCase()}.\nLos datos no se modificarán. Solamente cambiará la información que estás visualizando.\n\n¿Querés cambiar el contexto?`))setBranch(next);});
+  document.querySelectorAll('[data-compare-select]').forEach(s=>s.onchange=()=>{if(s.dataset.compareSelect==='a')compareA=s.value;else compareB=s.value;refresh()});
+  document.querySelectorAll('[data-view-jump]').forEach(b=>b.onclick=()=>navigate(b.dataset.viewJump));
+  document.querySelectorAll('[data-complete-task]').forEach(b=>b.onclick=()=>completeTask(b.dataset.completeTask));
+  document.querySelectorAll('[data-liquidate]').forEach(b=>b.onclick=()=>openLiquidation(b.dataset.liquidate));
+  document.querySelectorAll('[data-detail]').forEach(b=>b.onclick=()=>showDetail(b.dataset.detail,b.dataset.id));
+  document.querySelectorAll('[data-invoice-pdf]').forEach(b=>b.onclick=()=>generateInvoicePDF(b.dataset.invoicePdf));
+  document.querySelectorAll('[data-provider-history]').forEach(b=>b.onclick=()=>showProviderHistory(b.dataset.providerHistory));
+  document.querySelectorAll('[data-scroll]').forEach(b=>b.onclick=()=>{$('.sheet-wrap')?.scrollBy({left:b.dataset.scroll==='right'?500:-500,behavior:'smooth'})});
+ 
+  document.querySelectorAll('[data-hour-cell] input').forEach(input=>{input.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();input.dataset.advance='1';input.blur()}});input.addEventListener('blur',()=>saveHourCell(input));});
+  document.querySelectorAll('[data-cash-cell] input').forEach(input=>{input.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();input.blur()}});input.addEventListener('blur',()=>saveCashCell(input));});
+  document.querySelectorAll('[data-cash-add-row]').forEach(b=>b.onclick=()=>addCashConcept(b.dataset.cashAddRow));
+  document.querySelectorAll('[data-hours-adjust]').forEach(b=>b.onclick=()=>editEmployeeAdjustment(b.dataset.employeeAdjust,b.dataset.hoursAdjust));
+  $('#hoursEmployeeFilter')?.addEventListener('change',e=>{localStorage.setItem('blunno-hours-employee',e.target.value);refresh()});
+  $('#trashRestoreSelected')?.addEventListener('click',restoreSelectedTrash);
+  $('#trashPurgeSelected')?.addEventListener('click',purgeSelectedTrash);
+  $('#trashEmpty')?.addEventListener('click',purgeAllTrash);
+  $('#trashSelectAll')?.addEventListener('change',e=>document.querySelectorAll('.trash-select').forEach(x=>x.checked=e.target.checked));
+  document.querySelectorAll('[data-purge]').forEach(b=>b.onclick=()=>purgeOneTrash(b.dataset.purge,b.dataset.id));
+  document.querySelectorAll('[data-agent-person]').forEach(b=>b.onclick=()=>rememberAgentPerson(b.dataset.agentPerson));
+  document.querySelectorAll('[data-agent-prompt]').forEach(b=>b.onclick=()=>{const i=$('#agentInput');if(i){i.value=b.dataset.agentPrompt;i.focus()}});
+  $('#agentSend')?.addEventListener('click',agentText);
+  $('#backBtn')?.addEventListener('click',goBack); $('#forwardBtn')?.addEventListener('click',goForward);
+  $('#closePdfSuccess')?.addEventListener('click',closePdfSuccess);
+  document.querySelectorAll('[data-close-pdf-success]').forEach(b=>b.onclick=closePdfSuccess);
+  $('#pdfSuccessDownload')?.addEventListener('click',()=>{ if(pdfDownloadBlob) downloadBlob(pdfDownloadBlob,pdfDownloadName); });
+  document.querySelectorAll('[data-pdf-close]').forEach(b=>b.onclick=()=>generateAndShowViewPDF(b.dataset.pdfClose));
+  document.querySelectorAll('[data-view-file]').forEach(b=>b.onclick=()=>viewStoredFile(b.dataset.viewFile));
+  document.querySelectorAll('[data-download-file]').forEach(b=>b.onclick=()=>downloadStoredFile(b.dataset.downloadFile));
+  document.querySelectorAll('[data-print-file]').forEach(b=>b.onclick=()=>printStoredFile(b.dataset.printFile));
+  document.querySelectorAll('[data-dashboard-detail]').forEach(b=>b.onclick=()=>showDashboardDetail(b.dataset.dashboardDetail));
+  document.querySelectorAll('[data-invoice-quick-save]').forEach(b=>b.onclick=quickInvoiceSave);
+  $('#cashOpeningButton')?.addEventListener('click',editCashOpening);
+  document.querySelectorAll('[data-hours-focus]').forEach(b=>b.onclick=()=>document.querySelector('[data-hour-cell] input')?.focus());
+  $('#agentInput')?.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();agentText()}});
+  $('#agentMic')?.addEventListener('click',startSpeech);
+ 
+  document.querySelectorAll('[data-undo-agent]').forEach(b=>b.onclick=()=>undoAgent(b.dataset.undoCollection,b.dataset.undoAgent));
+  document.querySelectorAll('[data-close-period]').forEach(b=>b.onclick=openCloseConfirm);
+  document.querySelectorAll('[data-close-version]').forEach(b=>b.onclick=()=>{const c=Store.getRaw('closures',b.dataset.closeVersion);if(c)generateClosurePDF(c)});
+  document.querySelectorAll('[data-reopen-period]').forEach(b=>b.onclick=openReopenConfirm);
+  $("#exportAudit")?.addEventListener('click',()=>download(`auditoria-blunno-${today()}.json`,JSON.stringify(Store.db.audit,null,2),'application/json'));
+  $("#backupButton")?.addEventListener('click',()=>Store.exportJson());
+  $("#backupZipButton")?.addEventListener('click',createBackupZip);
+  $("#backupRestoreInput")?.addEventListener('change',e=>restoreBackupFile(e.target.files?.[0]));
+  $("#exportExcelButton")?.addEventListener('click',exportExcel);
+  $("#excelInput")?.addEventListener('change',handleExcel);
+ 
+}
+
+async function deleteRecord(collection,id){
+  if(branch==='General' && ['invoices','cash','expenses','investments','employees','hours','incomes'].includes(collection)){toast('General es solo una vista consolidada. Elegí una sucursal concreta.',false);return}
+  if(!currentOperator){toast('Elegí el responsable antes de eliminar.',false);return}
+  if(!confirm('¿Mover este registro a la papelera? Se conserva y se puede restaurar.')) return;
+  try{await Store.remove(collection,id,currentOperator,'Baja lógica confirmada');toast('El movimiento se encuentra en la papelera.');refresh()}catch(e){toast(e.message,false)}
+}
+async function restoreRecord(collection,id){if(branch==='General' && ['invoices','cash','expenses','investments','employees','hours','incomes'].includes(collection)){toast('General es solo una vista consolidada. Elegí una sucursal concreta.',false);return}if(!currentOperator){toast('Elegí el responsable antes de restaurar.',false);return}try{await Store.restore(collection,id,currentOperator);toast('Restaurado con éxito.');refresh()}catch(e){toast(e.message,false)}}
+async function bulkDelete(collection){
+  if(branch==='General' && ['invoices','cash','expenses','investments','employees','hours','incomes'].includes(collection)){toast('General es solo una vista consolidada. Elegí una sucursal concreta.',false);return}
+  if(!currentOperator){toast('Elegí el responsable antes de eliminar.',false);return;}
+  const items=[...document.querySelectorAll(`[data-bulk-select="${collection}"]:checked`)].map(x=>x.dataset.id);
+  if(!items.length){toast('Seleccioná al menos un elemento.',false);return;}
+  if(!confirm(`¿Mover ${items.length} elemento(s) a la papelera?`))return;
+  try{for(const id of items)await Store.remove(collection,id,currentOperator,'Baja lógica seleccionada');toast('Los elementos seleccionados fueron enviados a la papelera.');refresh();}catch(e){toast(e.message,false)}
+}
+
+function selectedTrash(){return [...document.querySelectorAll('.trash-select:checked')].map(x=>({collection:x.dataset.collection,id:x.dataset.id}));}
+async function restoreSelectedTrash(){const items=selectedTrash();if(!items.length){toast('Seleccioná al menos un elemento.',false);return}if(!currentOperator){toast('Elegí responsable.',false);return}try{await Store.restoreMany(items,currentOperator);toast('Restaurado con éxito.');refresh()}catch(e){toast(e.message,false)}}
+async function purgeSelectedTrash(){const items=selectedTrash();if(!items.length){toast('Seleccioná al menos un elemento.',false);return}if(!currentOperator){toast('Elegí responsable.',false);return}if(!confirm(`¿Eliminar definitivamente ${items.length} elemento(s)? Esta acción no se puede deshacer.`))return;try{await Store.purgeTrashMany(items,currentOperator);toast('Elementos eliminados definitivamente.');refresh()}catch(e){toast(e.message,false)}}
+async function purgeAllTrash(){if(!currentOperator){toast('Elegí responsable.',false);return}const items=Store.trash();if(!items.length)return toast('La papelera ya está vacía.');if(!confirm(`¿Vaciar definitivamente toda la papelera (${items.length} elementos)?`))return;try{await Store.purgeTrashMany(items,currentOperator);toast('Papelera vaciada definitivamente.');refresh()}catch(e){toast(e.message,false)}}
+async function purgeOneTrash(collection,id){if(!currentOperator){toast('Elegí responsable.',false);return}if(!confirm('¿Eliminar definitivamente este elemento? Esta acción no se puede deshacer.'))return;try{await Store.purgeTrashItem(collection,id,currentOperator);toast('Eliminado definitivamente.');refresh()}catch(e){toast(e.message,false)}}
+
+async function completeTask(id){try{const task=Store.get('tasks',id);if(!task)throw new Error('No se encontró el recordatorio.');await Store.completeTask(id,currentOperator);if(task.repeat&&task.repeat!=='none'){const d=new Date(`${task.dueDate}T12:00:00`);if(task.repeat==='daily')d.setDate(d.getDate()+1);if(task.repeat==='weekly')d.setDate(d.getDate()+7);if(task.repeat==='monthly')d.setMonth(d.getMonth()+1);await Store.addTask({title:task.title,description:task.description,dueDate:`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`,dueTime:task.dueTime||'',priority:task.priority||'normal',responsible:task.responsible,repeat:task.repeat,notes:task.notes||'',status:'pending'},currentOperator);}toast('Recordatorio marcado como realizado.');refresh()}catch(e){toast(e.message,false)}}
+
+async function saveHourCell(input){
+ if(!currentOperator){toast('Elegí responsable antes de cargar horas.',false);input.blur();return}
+ if(branch==='General'){toast('La planilla de horas es editable solo por sucursal.',false);input.blur();return}
+ const td=input.closest('td'); const date=td?.dataset.hourDate, employeeId=td?.dataset.employee; if(!date||!employeeId)return;
+ const employee=Store.get('employees',employeeId); if(!employee)return;
+ const existing=Store.list('hours',period,branch).find(x=>x.employeeId===employeeId&&x.date===date);
+ const value=input.value.trim();
+ try{
+   if(!value){if(existing) await Store.remove('hours',existing.id,currentOperator,'Borrado de celda de horas');}
+   else {
+     const normalized=value.replace(',','.').trim();
+     const holidayWithHours=normalized.match(/^(\d+(?:\.\d+)?)\s*h$/i);
+     const holidayKey=/^h$/i.test(normalized) || /^feriado$/i.test(normalized);
+     const isFranco=/^(f|franco)$/i.test(normalized);
+     let hours;
+     let displayValue;
+     let holiday='no';
+     let status='';
+     if(isFranco){hours=0;displayValue='F';status='franco';}
+     else if(holidayWithHours){hours=Number(holidayWithHours[1]);displayValue=`${hours}H`;holiday='yes';}
+     else if(holidayKey){hours=0;displayValue='H';holiday='yes';}
+     else {hours=Number(normalized);displayValue=hours;}
+     if(!isFranco && (!Number.isFinite(hours)||hours<0||hours>24)) throw new Error('Ingresá horas entre 0 y 24, F = franco, H = feriado.');
+     const data={period,date,branch:employee.branch,employeeId,employee:employee.name,hours,displayValue,status,advance:existing?.advance||0,merchandise:existing?.merchandise||0,holiday,salaryCost:hours*Number(employee.hourlyRate||0),notes:existing?.notes||''};
+     if(existing) await Store.update('hours',existing.id,data,currentOperator,'Edición directa de planilla');
+     else await Store.add('hours',data,currentOperator,'Carga directa de planilla');
+   }
+   toast('Celda guardada y auditada.');
+   if(input.dataset.advance==='1'){delete input.dataset.advance;const next=input.closest('td')?.nextElementSibling?.querySelector('input');if(next){next.focus();next.select();}else refresh();} else refresh();
+ }catch(e){toast(e.message,false)}
+}
+async function saveCashCell(input){
+ if(/saldo\s+d[ií]a\s+anterior/i.test(String(input.closest('td')?.dataset.concept||''))){toast('Saldo día anterior se calcula automáticamente con el resto del día previo.');return}
+ if(!currentOperator){toast('Elegí responsable antes de cargar caja.',false);return}
+ if(branch==='General'){toast('General es solo una vista consolidada. Elegí una sucursal concreta para editar Caja.',false);return}
+ const td=input.closest('td'); const date=td?.dataset.date, type=td?.dataset.type, concept=td?.dataset.concept; if(!date||!type||!concept)return;
+ const existing=Store.list('cash',period,branch).find(x=>x.date===date&&x.type===type&&(x.concept||'Sin concepto')===concept);
+ const value=input.value.trim();
+ try{
+   if(!value){if(existing) await Store.remove('cash',existing.id,currentOperator,'Borrado de celda de caja');}
+   else {const amount=Number(value.replace(/\./g,'').replace(',','.'));if(!Number.isFinite(amount)||amount<0)throw new Error('Ingresá un importe válido.');const data={period,date,branch:type?branch:'General',type,concept,amount,expected:existing?.expected||0,notes:existing?.notes||''};if(existing)await Store.update('cash',existing.id,data,currentOperator,'Edición directa de planilla de caja');else await Store.add('cash',data,currentOperator,'Carga directa de planilla de caja');}
+   toast('Importe guardado y auditado.'); refresh();
+ }catch(e){toast(e.message,false)}
+}
+
+function addCashConcept(type){
+ if(!currentOperator){toast('Elegí responsable antes de agregar un concepto.',false);return}
+ if(branch==='General'){toast('General es solo una vista consolidada. Elegí una sucursal concreta.',false);return}
+ const labels={income:'Nombre del concepto de ingreso:',expense:'Nombre del concepto de gasto de caja:',payment:'Nombre del concepto de pago:'};
+ const concept=prompt(labels[type]||'Nombre del concepto:'); if(!concept?.trim())return; if(type==='income'&&/^saldo\s+d[ií]a\s+anterior$/i.test(concept.trim())){toast('Saldo día anterior es automático y no se puede crear manualmente.',false);return;}
+ const date=today(); const data={period,date,branch,type,concept:concept.trim(),amount:0,expected:0,notes:''};
+ Store.add('cash',data,currentOperator,'Alta de concepto para planilla de caja').then(()=>{toast('Concepto agregado a la planilla.');refresh()}).catch(e=>toast(e.message,false));
+}
+async function editEmployeeAdjustment(employeeId,field){
+ if(branch==='General'){toast('Los adelantos y la mercadería se editan por sucursal.',false);return}
+ if(!currentOperator){toast('Elegí responsable.',false);return}
+ const employee=Store.get('employees',employeeId);if(!employee)return;
+ const type=field==='advance'?'advance':'merchandise'; const label=type==='advance'?'adelantos / vales':'mercadería';
+ const existing=Store.list('employeeDebts',period,branch).find(x=>x.employeeId===employeeId&&x.type===type);
+ const current=Number(existing?.amount||0); const raw=prompt(`Monto mensual de ${label} para ${employee.name}:`,String(current)); if(raw===null)return;
+ const amount=Number(raw.replace(/\./g,'').replace(',','.'));if(!Number.isFinite(amount)||amount<0){toast('Ingresá un monto válido.',false);return}
+ try{const data={date:today(),period,branch:employee.branch,employeeId,employee:employee.name,type,amount};if(existing)await Store.update('employeeDebts',existing.id,data,currentOperator,`Edición de ${label}`);else await Store.add('employeeDebts',data,currentOperator,`Carga de ${label}`);toast(`${label} actualizado y auditado.`);refresh()}catch(e){toast(e.message,false)}
+}
+
+function openLiquidation(employeeId){
+ if(branch==='General'){toast('Las liquidaciones se realizan dentro de una sucursal concreta.',false);return}
+ const e=Store.get('employees',employeeId); if(!e)return;
+ const rows=Store.list('hours',period,branch).filter(x=>x.employeeId===employeeId);
+ const debts=Store.list('employeeDebts',period,branch).filter(x=>x.employeeId===employeeId);
+ const prev=Store.list('employeeDebts',prevPeriod(period),branch).find(x=>x.employeeId===employeeId&&x.type==='negativeBalance');
+ const hours=rows.reduce((s,x)=>s+Number(x.hours||0),0);
+ const holidays=rows.filter(x=>x.holiday==='yes').reduce((s,x)=>s+Number(x.hours||0),0);
+ const advance=rows.reduce((s,x)=>s+Number(x.advance||0),0)+debts.filter(x=>x.type==='advance').reduce((s,x)=>s+Number(x.amount||0),0);
+ const merchandise=rows.reduce((s,x)=>s+Number(x.merchandise||0),0)+debts.filter(x=>x.type==='merchandise').reduce((s,x)=>s+Number(x.amount||0),0);
+ const previousDebt=Number(prev?.amount||0);
+ $("#liquidationBody").innerHTML=`<div class="liquidation-grid"><div><span>Empleado</span><b>${esc(e.name)}</b></div><div><span>Horas normales</span><b>${number(hours-holidays)}</b></div><div><span>Horas feriado</span><b>${number(holidays)}</b></div><div><span>Adelantos</span><b>${money(advance)}</b></div><div><span>Mercadería</span><b>${money(merchandise)}</b></div><div><span>Saldo negativo anterior</span><b>${money(previousDebt)}</b></div></div><label class="field">Valor hora<input id="liqRate" type="number" min="0" step="0.01" value="${Number(e.hourlyRate||0)}"></label><label class="field">Valor hora feriado<input id="liqHolidayRate" type="number" min="0" step="0.01" value="${Number(e.hourlyRate||0)*2}"></label><div id="liqTotal" class="liq-total"></div><div class="modal-footer"><button class="secondary-button" data-close-liquidation>Cancelar</button><button class="primary-button" id="saveLiquidation">Totalizar sueldo</button></div>`;
+ const calc=()=>{const r=Number($('#liqRate').value||0),hr=Number($('#liqHolidayRate').value||0),gross=(hours-holidays)*r+holidays*hr,net=gross-advance-merchandise-previousDebt;$('#liqTotal').innerHTML=`<b>Sueldo bruto: ${money(gross)}</b><b>Descuentos: ${money(advance+merchandise)}</b><b>Saldo negativo anterior: ${money(previousDebt)}</b><b>${net>=0?'A cobrar':'SALDO NEGATIVO'}: ${money(Math.abs(net))}</b>`;return{r,hr,gross,net}};
+ $('#liqRate').oninput=calc; $('#liqHolidayRate').oninput=calc; calc();
+ $('#saveLiquidation').onclick=async()=>{const btn=$('#saveLiquidation');if(btn.dataset.saving==='1')return;btn.dataset.saving='1';btn.disabled=true;try{const c=calc();const liq=await Store.add('liquidations',{date:today(),period,branch,employeeId,employee:e.name,normalHours:hours-holidays,holidayHours:holidays,hourlyRate:c.r,holidayRate:c.hr,advance,merchandise,previousNegativeBalance:previousDebt,gross:c.gross,net:c.net,responsible:currentOperator},currentOperator,'Totalización de sueldo');
+   if(c.net<0){const nextDebt=Store.list('employeeDebts',nextPeriod(period),branch).find(x=>x.employeeId===employeeId&&x.type==='negativeBalance');const debtData={date:today(),period:nextPeriod(period),branch:e.branch,employeeId,employee:e.name,type:'negativeBalance',amount:Math.abs(c.net),originPeriod:period,originLiquidationId:liq.id};if(nextDebt)await Store.update('employeeDebts',nextDebt.id,debtData,currentOperator,'Actualización de saldo negativo arrastrado');else await Store.add('employeeDebts',debtData,currentOperator,'Arrastre de saldo negativo al siguiente período');}
+   const blob=createSimplePDF('Liquidación de sueldo',`${e.name} · ${periodLabel(period)} · ${branch}`,[["Empleado",e.name],["Período",periodLabel(period)],["Horas normales",number(hours-holidays)],["Horas feriado",number(holidays)],["Valor hora",money(c.r)],["Valor hora feriado",money(c.hr)],["Adelantos",money(advance)],["Mercadería",money(merchandise)],["Saldo negativo anterior",money(previousDebt)],["Sueldo bruto",money(c.gross)],["Resultado de liquidación",money(c.net)],['Estado',c.net<0?'SALDO NEGATIVO':'A COBRAR'],['Responsable',currentOperator]],'La liquidación queda registrada y auditada.');
+   const name=`BLUNNO_Liquidacion_${e.name.replace(/[^a-z0-9]+/gi,'_')}_${period}.pdf`;await Store.archiveFile({name,sector:'Liquidaciones',period,branch,responsible:currentOperator,mime:'application/pdf',createdAt:now(),sourceCollection:'liquidations',storagePath:storagePathFor(period,branch,'Liquidaciones',name),blob});$('#liquidationModal').classList.add('hidden');showPdfSuccess('Liquidación guardada correctamente',`La liquidación de ${e.name} fue registrada y auditada.`,`<b>${esc(name)}</b><span>Responsable: ${esc(currentOperator)} · ${dateTimeLabel(now())}</span>`,blob,name);refresh();
+ }catch(err){toast(err.message,false)}finally{btn.dataset.saving='0';btn.disabled=false}};
+ document.querySelectorAll('[data-close-liquidation]').forEach(b=>b.onclick=()=>$('#liquidationModal').classList.add('hidden')); $('#liquidationModal').classList.remove('hidden');
+}
+function showProviderHistory(provider){
+  const all = Store.list('invoices', period, branch);
+  const inv = all.filter(x=>x.provider===provider).sort((a,b)=>String(b.operationDate||'').localeCompare(String(a.operationDate||'')));
+  const total = inv.reduce((sum,x)=>sum+Number(x.amount||0),0);
+  $('#detailTitle').textContent='Historial · '+provider;
+  let body='<div class="panel"><div class="mini-kpis">'+money(total)+' · '+inv.length+' facturas</div>';
+  if(inv.length){body+='<div class="table-wrap"><table><thead><tr><th>Factura</th><th>Fecha movimiento</th><th>Fecha carga</th><th>Sucursal</th><th>Importe</th><th>Estado</th><th>PDF</th></tr></thead><tbody>';inv.forEach(function(x){body+='<tr><td>'+esc(x.number||'—')+'</td><td>'+dateLabel(x.operationDate||x.date)+'</td><td>'+dateTimeLabel(x.loadDate||x.createdAt)+'</td><td>'+esc(x.branch||'—')+'</td><td>'+money(x.amount)+'</td><td><span class="status-pill success">CARGADA</span></td><td><button class="secondary-button compact-button" data-invoice-pdf="'+esc(x.id)+'">PDF</button></td></tr>';});body+='</tbody></table></div>';} else body+='<div class="empty-block">No hay facturas de este proveedor en el período/perfil seleccionado.</div>';
+  body+='<div class="modal-footer"><button class="primary-button" id="providerHistoryPdf">Generar historial PDF</button></div></div>';
+  $('#detailBody').innerHTML=body; $('#detailModal').classList.remove('hidden'); $('#providerHistoryPdf').onclick=()=>generateProviderHistoryPDF(provider,inv);
+}
+async function generateProviderHistoryPDF(provider,inv){
+ if(!currentOperator){toast('Elegí responsable antes de generar el PDF.',false);return}
+ const rows=[['Proveedor',provider],['Período',periodLabel(period)],['Perfil',branch],['Cantidad de facturas',inv.length],['Total',money(inv.reduce((s,x)=>s+Number(x.amount||0),0))],...inv.map((x,i)=>[`Factura ${i+1}`,`${x.number||'—'} · ${dateLabel(x.operationDate||x.date)} · ${money(x.amount)} · ${x.branch} · CARGADA`])];
+ const blob=createSimplePDF('HISTORIAL DE PROVEEDOR',`${provider} · ${periodLabel(period)} · ${branch}`,rows,'Cada factura es un movimiento independiente.'); if(!blob)return;
+ const name=`BLUNNO_Historial_${provider.replace(/[^a-z0-9]+/gi,'_')}_${period}.pdf`;
+ await Store.archiveFile({name,sector:'Historial de proveedor',period,branch,responsible:currentOperator,mime:'application/pdf',createdAt:now(),sourceCollection:'invoices',storagePath:storagePathFor(period,branch,'Historial de proveedor',name),blob});
+ showPdfSuccess('Historial listo',`Se generó el historial completo de ${provider}.`,`<b>${esc(name)}</b><span>Responsable: ${esc(currentOperator)} · ${esc(dateTimeLabel(now()))}</span>`,blob,name);
+}
+async function generateInvoicePDF(id){
+ if(!currentOperator){toast('Elegí responsable antes de generar el PDF.',false);return}
+ const inv=Store.get('invoices',id); if(!inv){toast('La factura ya no está disponible.',false);return}
+ const blob=createSimplePDF('FACTURA CARGADA',`${inv.provider} · ${periodLabel(inv.period||period)} · ${inv.branch}`,[["Proveedor",inv.provider],["Número de factura",inv.number||'—'],["Fecha de movimiento",dateLabel(inv.operationDate||inv.date)],["Fecha de carga",dateTimeLabel(inv.loadDate||inv.createdAt)],["Sucursal",inv.branch],["Importe",money(inv.amount)],["Estado","CARGADA"],["Responsable",inv.responsible||currentOperator],["Observaciones",inv.notes||'—']], 'Documento de control interno de la factura cargada.');
+ const safeProvider=inv.provider.replace(/[^a-z0-9]+/gi,'_'); const safeNumber=(inv.number||'sin_numero').replace(/[^a-z0-9]+/gi,'_'); const name=`BLUNNO_Factura_${safeProvider}_${safeNumber}_${inv.period||period}.pdf`; const storagePath=storagePathFor(inv.period||period,inv.branch,'Facturas',name); let url=null;try{url=await uploadFile(storagePath,blob,'application/pdf')}catch(e){console.warn('Storage factura',e)}
+ await Store.archiveFile({name,sector:'Facturas',period:inv.period||period,branch:inv.branch,responsible:currentOperator,mime:'application/pdf',createdAt:now(),sourceCollection:'invoices',sourceId:inv.id,url,storagePath,blob});
+ showPdfSuccess('Factura PDF lista','La ficha documental de la factura fue generada y archivada.',`<b>${esc(name)}</b><span>Estado: CARGADA · Generado: ${esc(dateTimeLabel(now()))}</span>`,blob,name);
+}
+function showDashboardDetail(kind){
+ const s=Store.summary(period,branch); let title='',items=[];
+ const withRows=(collection,list,labelFn)=>list.map(x=>({label:labelFn(x),collection,id:x.id}));
+ if(kind==='income'){title='Detalle de ingresos';items=withRows('incomes',Store.list('incomes',period,branch),x=>`${dateLabel(x.date)} · ${x.concept||'Sin concepto'} · ${money(x.amount)}`)}
+ if(kind==='expenses'){title='Detalle de gastos del local';items=withRows('expenses',Store.list('expenses',period,branch),x=>`${dateLabel(x.date)} · ${x.category} · ${x.concept||'Sin concepto'} · ${money(x.amount)}`)}
+ if(kind==='providers'){title='Detalle de proveedores';items=withRows('invoices',Store.list('invoices',period,branch),x=>`${dateLabel(x.operationDate||x.date)} · ${x.provider} · Factura ${x.number||'—'} · ${money(x.amount)}`)}
+ if(kind==='investments'){title='Detalle de inversiones';items=withRows('investments',Store.list('investments',period,branch),x=>`${dateLabel(x.date)} · ${x.concept||'Sin concepto'} · ${money(x.amount)}`)}
+ if(kind==='salary'){title='Detalle de personal';items=withRows('liquidations',Store.list('liquidations',period,branch),x=>`${x.employee} · ${money(x.gross||0)} · ${number(x.normalHours||0)} h normales · ${number(x.holidayHours||0)} h feriado`);if(!items.length)items=withRows('hours',Store.list('hours',period,branch),x=>`${x.employee} · ${dateLabel(x.date)} · ${number(x.hours||0)} h`)}
+ if(kind==='result'){title='Cómo se calcula el resultado';items=[{label:`Ingresos · ${money(s.income)}`},{label:`− Gastos del local · ${money(s.localExpense)}`},{label:`− Proveedores · ${money(s.providers)}`},{label:`− Inversiones · ${money(s.investment)}`},{label:`− Personal · ${money(s.salary)}`},{label:`Resultado · ${money(s.result)}`},{label:'Caja diaria · NO está incluida'}];}
+ $('#detailTitle').textContent=title;
+ $('#detailBody').innerHTML=`<div class="detail-summary-list">${items.length?items.map(x=>`<div><span>${esc(x.label)}</span>${x.id?`<button class="secondary-button compact-button" data-detail-open="${esc(x.collection)}" data-id="${esc(x.id)}">Abrir</button>`:'<b>—</b>'}</div>`).join(''):'<div class="empty-block">No hay movimientos para este indicador.</div>'}</div>`;
+ $('#detailModal').classList.remove('hidden');
+ document.querySelectorAll('[data-detail-open]').forEach(b=>b.onclick=()=>showDetail(b.dataset.detailOpen,b.dataset.id));
+}
+function showDetail(collection,id){
+ const x=Store.get(collection,id); if(!x)return;
+ $('#detailTitle').textContent=collection==='invoices'?'Detalle de factura':'Detalle';
+ const fields=Object.entries(x).filter(([k])=>!['id','deleted'].includes(k)).map(([k,v])=>`<div><span>${esc(k)}</span><b>${esc(typeof v==='object'?JSON.stringify(v):v)}</b></div>`).join('');
+ const actions=collection==='invoices'?`<div class="modal-footer"><button class="secondary-button" data-close-detail>× Cerrar</button><button class="primary-button" data-invoice-pdf="${esc(x.id)}">Generar PDF</button></div>`:'';
+ $('#detailBody').innerHTML=`<div class="detail-grid">${fields}</div>${actions}`; $('#detailModal').classList.remove('hidden');
+ document.querySelectorAll('[data-close-detail]').forEach(b=>b.onclick=()=>$('#detailModal').classList.add('hidden'));
+ document.querySelectorAll('[data-invoice-pdf]').forEach(b=>b.onclick=()=>generateInvoicePDF(b.dataset.invoicePdf));
+}
+function openPeriodModal(){const list=Store.db.periods.slice().sort((a,b)=>b.id.localeCompare(a.id));$('#periodBody').innerHTML=`<div class="period-create"><label class="field">Ir a período<input id="periodInput" type="month" value="${period}"></label><button class="primary-button" id="goPeriod">Abrir</button></div>${list.map(p=>{const closed=Store.periodIsClosed(p.id,branch);return `<button class="period-row" data-select-period="${p.id}"><b>${periodLabel(p.id)}</b><span class="status-pill ${closed?'muted':'success'}">${closed?'CERRADO':'ABIERTO'}</span></button>`}).join('')}`;$('#periodModal').classList.remove('hidden');$('#goPeriod').onclick=()=>{const value=$('#periodInput').value;if(!/^\d{4}-\d{2}$/.test(value)){toast('Elegí un período válido.',false);return}period=value;Store.setPeriod(period);$('#periodModal').classList.add('hidden');refresh()};document.querySelectorAll('[data-select-period]').forEach(b=>b.onclick=()=>{period=b.dataset.selectPeriod;$('#periodModal').classList.add('hidden');refresh()})}
+
+async function openCloseConfirm(){
+ if(branch==='General'){toast('General es una vista consolidada. Elegí una sucursal concreta para cerrar.',false);return}
+ if(!currentOperator){toast('Elegí responsable antes del cierre.',false);return}
+ const s=Store.summary(period,branch);
+ if(Store.periodIsClosed(period,branch)){toast('Este perfil ya está cerrado.');return}
+ const blockers=[];
+ if(!period||!/^[0-9]{4}-[0-9]{2}$/.test(period)) blockers.push('Período inválido.');
+ if(!branch) blockers.push('Perfil inválido.');
+ if(blockers.length){toast(blockers.join(' '),false);return}
+ const checks=[
+  ['Caja diaria revisada',`${s.cashCount} movimientos · control ${money(s.cashControl)}`],
+  ['Ingresos revisados',money(s.income)],
+  ['Proveedores / facturas revisados',`${s.invoiceCount} facturas · ${money(s.providers)}`],
+  ['Gastos del local revisados',`${s.expenseCount} registros · ${money(s.localExpense)}`],
+  ['Inversiones revisadas',`${s.investmentCount} registros · ${money(s.investment)}`],
+  ['Horas y liquidaciones revisadas',`${number(s.hours)} horas · ${s.liquidationCount} liquidaciones`],
+  ['Resultado revisado',money(s.result)]
+ ];
+ $('#closeConfirmBody').innerHTML=`<div class="close-summary"><div><span>Período</span><b>${periodLabel(period)}</b></div><div><span>Perfil</span><b>${esc(branch)}</b></div><div><span>Resultado</span><b>${money(s.result)}</b></div><div><span>Siguiente período</span><b>${periodLabel(nextPeriod(period))}</b></div></div><div class="close-preflight">${checks.map((c,i)=>`<label><input type="checkbox" data-close-check="${i}"> <span><b>${esc(c[0])}</b><small>${esc(c[1])}</small></span></label>`).join('')}</div><label class="field">Observaciones / diferencias<textarea id="closeObservation" rows="3" placeholder="Dejá constancia de diferencias o aclaraciones."></textarea></label><button class="primary-button full-button" id="confirmCloseBtn">Confirmar cierre y generar PDF</button>`;
+ $('#closeConfirmModal').classList.remove('hidden');
+ $('#confirmCloseBtn').onclick=async()=>{
+   const checks=[...document.querySelectorAll('[data-close-check]')];
+   if(checks.some(x=>!x.checked)){toast('Debés confirmar todos los puntos del control previo.',false);return}
+   const observations=$('#closeObservation').value.trim();
+   try{
+     const closure=await Store.closePeriod(period,nextPeriod(period),currentOperator,s,observations,checks.map((x,i)=>({index:i,confirmed:true,at:now()})));
+     $('#closeConfirmModal').classList.add('hidden');refresh();await generateClosurePDF(closure);
+   }catch(e){toast(e.message,false)}
+ };
+}
+async function openReopenConfirm(){if(branch==='General'){toast('General es una vista consolidada. Elegí una sucursal concreta para reabrir.',false);return}const reason=prompt('Motivo obligatorio para reabrir el período:');if(!reason?.trim())return;try{await Store.reopenPeriod(period,branch,currentOperator,reason);toast('Período reabierto y auditado.');refresh()}catch(e){toast(e.message,false)}}
+
+async function generateClosurePDF(closure){
+    const s=closure.summary||{};
+  const rows=[['Período',periodLabel(closure.period)],['Sucursal / perfil',closure.branch],['Versión',closure.version],['Responsable del cierre',closure.responsible],['Fecha y hora exactas',dateTimeLabel(closure.closedAt)],['Ingresos',money(s.income)],['Gastos de caja',money(s.cashExpense)],['Gastos del local',money(s.localExpense)],['Proveedores facturados',money(s.providers)],['Inversiones',money(s.investment)],['Personal',money(s.salary)],['Resultado',money(s.result)],['Control de caja',money(s.cashControl)],['Facturas',s.invoiceCount||0],['Horas',number(s.hours||0)],['Observaciones',closure.observations||'Sin observaciones.'],['Movimientos posteriores',String((Store.db.audit||[]).filter(a=>a.period===closure.period&&a.branch===closure.branch&&String(a.at)>String(closure.closedAt)).length)]];
+  const blob=createSimplePDF('CIERRE MENSUAL',`Documento oficial de cierre · ${periodLabel(closure.period)} · ${closure.branch}`,rows,'Este documento conserva la versión del cierre. Los cambios posteriores generan una nueva versión y mantienen la trazabilidad.');
+  if(!blob)return null;
+  const safe=`cierre-${closure.period}-${String(closure.branch).replace(/\\s+/g,'-').toLowerCase()}-v${closure.version}.pdf`;
+  const closurePath=storagePathFor(closure.period,closure.branch,'Cierre mensual',safe);
+  let url=null;
+  try{url=await uploadFile(closurePath,blob,'application/pdf')}catch(e){console.warn('Storage PDF',e)}
+  const existing=Store.db.files.find(x=>x.name===safe&&!x.deleted);
+  if(!existing){await Store.archiveFile({name:safe,sector:'Cierre mensual',period:closure.period,branch:closure.branch,responsible:closure.responsible,mime:'application/pdf',createdAt:now(),sourceCollection:'closures',sourceId:closure.id,url,storagePath:closurePath,blob});}
+  showPdfSuccess('Cierre mensual listo',`El cierre de ${periodLabel(closure.period)} quedó registrado como versión ${closure.version}.`,`<b>${esc(safe)}</b><span>Perfil: ${esc(closure.branch)} · Responsable: ${esc(closure.responsible)} · ${esc(dateTimeLabel(closure.closedAt))}</span>`,blob,safe);
+  return blob;
+}
+const downloadBlob=(blob,name)=>{const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000)};
+const download=(name,data,type)=>{const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([data],{type}));a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),500)};
+
+function showPdfSuccess(title,description,meta,blob,name){pdfDownloadBlob=blob;pdfDownloadName=name;$('#pdfSuccessTitle').textContent=title;$('#pdfSuccessDescription').textContent=description;$('#pdfSuccessMeta').innerHTML=meta||'';$('#pdfSuccessModal').classList.remove('hidden');}
+function closePdfSuccess(){$('#pdfSuccessModal').classList.add('hidden');pdfDownloadBlob=null;}
+
+async function generateAndShowViewPDF(type){
+  if(!currentOperator){toast('Elegí el responsable en la barra superior antes de generar un PDF.',false);return}
+  const s=Store.summary(period,branch); let rows=[]; let title='Documento BLUNNO'; let desc='Documento generado desde Control Empresarial Blunno.';
+  const addRecords=(label,list,formatter)=>list.forEach((x,i)=>rows.push([`${label} ${i+1}`,formatter(x)]));
+  if(type==='dashboard'){title='RESUMEN GENERAL BLUNNO';desc=`Resumen de ${periodLabel(period)} · ${branch}`;rows=[['Período',periodLabel(period)],['Perfil',branch],['Ingresos',money(s.income)],['Gastos del local',money(s.localExpense)],['Proveedores',money(s.providers)],['Inversiones',money(s.investment)],['Personal',money(s.salary)],['Resultado',money(s.result)],['Caja diaria','SEPARADA · no incluida en el resultado']];}
+  else   if(type==='cash'){const list=Store.list('cash',period,branch).sort((a,b)=>String(a.date).localeCompare(String(b.date)));title='CAJA DIARIA · CONTROL COMPLETO';desc=`Caja de ${periodLabel(period)} · ${branch}`;const days=daysInPeriod(period);let saldo=getCashOpening();const daily=[];for(let d=1;d<=days;d++){const date=isoDate(period,d),inc=list.filter(x=>x.date===date&&x.type==='income'&&!/^saldo\s+d[ií]a\s+anterior$/i.test(String(x.concept||''))).reduce((a,x)=>a+Number(x.amount||0),0),exp=list.filter(x=>x.date===date&&x.type==='expense').reduce((a,x)=>a+Number(x.amount||0),0),pay=list.filter(x=>x.date===date&&x.type==='payment').reduce((a,x)=>a+Number(x.amount||0),0),opening=saldo;saldo=opening+inc-exp-pay;daily.push([`Día ${d}`,`${dateLabel(date)} · Saldo anterior ${money(opening)} · Ingresos ${money(inc)} · Gastos ${money(exp)} · Pagos ${money(pay)} · RESTO ${money(saldo)}`])}rows=[['Período',periodLabel(period)],['Perfil',branch],['Saldo inicial',money(getCashOpening())],['Ingresos de caja',money(list.filter(x=>x.type==='income'&&!/^saldo\s+d[ií]a\s+anterior$/i.test(String(x.concept||''))).reduce((a,x)=>a+Number(x.amount||0),0))],['Gastos de caja',money(list.filter(x=>x.type==='expense').reduce((a,x)=>a+Number(x.amount||0),0))],['Pagos',money(list.filter(x=>x.type==='payment').reduce((a,x)=>a+Number(x.amount||0),0))],['Saldo final',money(saldo)],['CONTROL DIARIO','A continuación se detalla cada día']];rows.push(...daily);addRecords('Movimiento',list,x=>`${dateLabel(x.date)} · ${x.type==='income'?'INGRESO':'GASTO'} · ${x.concept||'Sin concepto'} · ${money(x.amount)} · ${x.responsible||'—'}`);}
+  else if(type==='income'){const list=Store.list('incomes',period,branch).sort((a,b)=>String(a.date).localeCompare(String(b.date)));title='INGRESOS · DETALLE COMPLETO';desc=`Ingresos independientes de ${periodLabel(period)} · ${branch}`;rows=[['Período',periodLabel(period)],['Perfil',branch],['Movimientos',String(list.length)],['Total ingresos',money(list.reduce((a,x)=>a+Number(x.amount||0),0))]];addRecords('Ingreso',list,x=>`${dateLabel(x.date)} · ${x.method||'Sin medio'} · ${x.concept||'Sin concepto'} · ${money(x.amount)} · Resp.: ${x.responsible||'—'}`);}
+  else if(type==='invoices'){const list=Store.list('invoices',period,branch).sort((a,b)=>String(a.operationDate||a.date).localeCompare(String(b.operationDate||b.date)));title='FACTURAS · DETALLE COMPLETO';desc=`Facturas cargadas de ${periodLabel(period)} · ${branch}`;rows=[['Período',periodLabel(period)],['Perfil',branch],['Documentos',String(list.length)],['Total facturado',money(list.reduce((a,x)=>a+Number(x.amount||0),0))]];addRecords('Factura',list,x=>`${x.provider} · N° ${x.number||'—'} · Movimiento ${dateLabel(x.operationDate||x.date)} · Carga ${dateTimeLabel(x.loadDate||x.createdAt)} · ${money(x.amount)} · CARGADA · Resp.: ${x.responsible||'—'}`);}
+  else if(type==='hours'){const list=Store.list('hours',period,branch).sort((a,b)=>String(a.date).localeCompare(String(b.date)));title='HORAS MENSUALES · DETALLE COMPLETO';desc=`Planilla de ${periodLabel(period)} · ${branch}`;rows=[['Período',periodLabel(period)],['Perfil',branch],['Empleados',String(new Set(list.map(x=>x.employeeId)).size)],['Horas',number(list.reduce((a,x)=>a+Number(x.hours||0),0))],['Horas feriado',number(list.filter(x=>x.holiday==='yes').reduce((a,x)=>a+Number(x.hours||0),0))]];addRecords('Carga',list,x=>`${x.employee} · ${dateLabel(x.date)} · ${x.displayValue||x.hours||0} · ${x.holiday==='yes'?'FERIADO':''} · Adelanto ${money(x.advance||0)} · Mercadería ${money(x.merchandise||0)} · Resp.: ${x.responsible||'—'}`);}
+  else if(type==='expenses'){const list=Store.list('expenses',period,branch).sort((a,b)=>String(a.date).localeCompare(String(b.date)));title='GASTOS DEL LOCAL · DETALLE COMPLETO';desc=`Gastos del local de ${periodLabel(period)} · ${branch}`;const totalExp=list.reduce((a,x)=>a+Number(x.amount||0),0);rows=[['Período',periodLabel(period)],['Perfil',branch],['Movimientos',String(list.length)],['Total',money(totalExp)]];const grouped=new Map();list.forEach(x=>grouped.set(x.category,(grouped.get(x.category)||0)+Number(x.amount||0)));[...grouped.entries()].sort((a,b)=>a[0].localeCompare(b[0],'es')).forEach(([cat,val])=>rows.push([`Subtotal · ${cat}`,money(val)]));addRecords('Gasto',list,x=>`${dateLabel(x.date)} · ${x.category} · ${x.concept||'—'} · ${money(x.amount)} · ${x.document||'Sin comprobante'} · Resp.: ${x.responsible||'—'}`);}
+  else if(type==='investments'){const list=Store.list('investments',period,branch).sort((a,b)=>String(a.date).localeCompare(String(b.date)));title='INVERSIONES · DETALLE COMPLETO';desc=`Inversiones de ${periodLabel(period)} · ${branch}`;rows=[['Período',periodLabel(period)],['Perfil',branch],['Movimientos',String(list.length)],['Total',money(list.reduce((a,x)=>a+Number(x.amount||0),0))]];addRecords('Inversión',list,x=>`${dateLabel(x.date)} · ${x.concept||'—'} · ${money(x.amount)} · ${x.document||'Sin comprobante'} · Resp.: ${x.responsible||'—'}`);}
+  else if(type==='providers'){const list=Store.list('invoices',period,branch);title='PROVEEDORES · RESUMEN';desc=`Proveedores y facturación de ${periodLabel(period)} · ${branch}`;rows=[['Período',periodLabel(period)],['Perfil',branch],['Proveedores activos',String(Store.list('providers').filter(x=>x.active!==false).length)],['Facturas cargadas',String(list.length)],['Total facturado',money(list.reduce((a,x)=>a+Number(x.amount||0),0))]];[...new Set(list.map(x=>x.provider))].sort((a,b)=>a.localeCompare(b,'es')).forEach(name=>{const p=list.filter(x=>x.provider===name);rows.push([name,`${p.length} facturas · ${money(p.reduce((a,x)=>a+Number(x.amount||0),0))}`])});}
+  else if(type==='people'){const list=Store.list('employees').filter(x=>branch==='General'||x.branch===branch);title='PERSONAL · DETALLE';desc=`Personal de ${branch}`;rows=[['Perfil',branch],['Empleados',String(list.length)]];addRecords('Empleado',list,x=>`${x.name} · ${x.branch} · ${x.role||'Sin puesto'} · Valor hora ${money(x.hourlyRate||0)} · ${x.active===false?'INACTIVO':'ACTIVO'}`);}
+  else if(type==='results'){title='RESULTADO MENSUAL';desc=`Resultado de ${periodLabel(period)} · ${branch}`;rows=[['Ingresos',money(s.income)],['Gastos del local',money(s.localExpense)],['Proveedores',money(s.providers)],['Inversiones',money(s.investment)],['Personal',money(s.salary)],['Resultado',money(s.result)],['Caja diaria','Separada y no incluida']];}
+  else if(type==='compare'){const a=Store.summary(compareA,branch),b=Store.summary(compareB,branch);const cmp=(label,av,bv,fmt=money)=>{const diff=Number(bv||0)-Number(av||0);const pct=Number(av)?(diff/Number(av))*100:null;return [label,`${fmt(av)} / ${fmt(bv)}`,`Diferencia: ${fmt(diff)} · Variación: ${pct===null?'—':pct.toFixed(2)+'%'}`]};title='COMPARATIVA DE PERÍODOS';desc=`${periodLabel(compareA)} vs ${periodLabel(compareB)} · ${branch}`;rows=[['Período A',periodLabel(compareA)],['Período B',periodLabel(compareB)],cmp('Ingresos',a.income,b.income),cmp('Gastos del local',a.localExpense,b.localExpense),cmp('Proveedores',a.providers,b.providers),cmp('Inversiones',a.investment,b.investment),cmp('Personal',a.salary,b.salary),cmp('Resultado',a.result,b.result),cmp('Horas',a.hours,b.hours,number)];}
+  else if(type==='history'){title='HISTORIAL Y AUDITORÍA';desc='Trazabilidad completa de Control Empresarial Blunno';rows=[['Registros',String(Store.db.audit.length)]];addRecords('Registro',Store.db.audit.slice(0,250),x=>`${dateTimeLabel(x.at)} · ${x.action} · ${x.collection} · ${x.responsible||'—'} · ${x.reason||''}`);}
+  else if(type==='tasks'){const list=Store.list('tasks').sort((a,b)=>`${a.dueDate} ${a.dueTime}`.localeCompare(`${b.dueDate} ${b.dueTime}`));title='RECORDATORIOS';desc='Recordatorios y estado';rows=[['Total',String(list.length)],['Pendientes',String(list.filter(x=>x.status!=='completed').length)],['Realizados',String(list.filter(x=>x.status==='completed').length)]];addRecords('Tarea',list,x=>`${x.title} · ${dateLabel(x.dueDate)} ${x.dueTime||''} · ${x.status==='completed'?'REALIZADA':'PENDIENTE'} · Resp.: ${x.responsible||'—'}`);}
+  else return;
+  const blob=createSimplePDF(title,desc,rows,'Documento generado por Control Empresarial Blunno. Caja diaria permanece separada del resultado general.');if(!blob)return;
+  const safeBase=`${type}-blunno-${period}-${String(branch).replace(/\s+/g,'-').toLowerCase()}`;const name=`${safeBase}-${Date.now()}.pdf`;
+  const storagePath=storagePathFor(period,branch,title,name);let url=null;try{url=await uploadFile(storagePath,blob,'application/pdf')}catch(e){console.warn('Storage PDF',e)}
+  try{await Store.archiveFile({name,sector:title,period,branch,generatedBy:currentOperator,responsible:currentOperator,mime:'application/pdf',createdAt:now(),url,storagePath,blob});}catch(e){toast(`El PDF se generó, pero no pudo archivarse: ${e.message}`,false);return}
+  showPdfSuccess('PDF listo para descargar',desc,`<b>${esc(name)}</b><span>Ruta: ${esc(storagePath)} · Generado: ${esc(dateTimeLabel(now()))}</span>`,blob,name);
+}
+
+async function viewStoredFile(id){
+  const f=Store.get('files',id);
+  if(!f){toast('No se encontró el archivo.',false);return}
+  try{
+    const blob=await Store.getFileBlob(id);
+    if(!blob){toast('No se encontró una copia visualizable de este archivo.',false);return}
+    const url=URL.createObjectURL(blob);
+    const win=window.open(url,'_blank','noopener,noreferrer');
+    if(!win){toast('El navegador bloqueó la vista previa. Permití ventanas emergentes para Blunno.',false);return}
+    setTimeout(()=>URL.revokeObjectURL(url),60000);
+  }catch(e){toast(`No se pudo abrir el archivo: ${e.message}`,false)}
+}
+async function downloadStoredFile(id){const f=Store.get('files',id);if(!f){toast('No se encontró el archivo.',false);return}try{const blob=await Store.getFileBlob(id);if(!blob){toast('No se encontró una copia descargable de este archivo.',false);return}downloadBlob(blob,f.name);toast('Archivo descargado correctamente.')}catch(e){toast(`No se pudo descargar: ${e.message}`,false)}}
+
+
+function getCashOpening(){const id=`cash-opening-${period}-${branch}`;return Number(Store.db.settings.find(x=>x.id===id)?.amount||0)}
+async function editCashOpening(){if(!currentOperator){toast('Elegí responsable antes de modificar el saldo inicial.',false);return}const current=getCashOpening();const raw=prompt(`Saldo con el que arranca la caja de ${periodLabel(period)} · ${branch}:`,String(current));if(raw===null)return;const amount=Number(raw.replace(/\./g,'').replace(',','.'));if(!Number.isFinite(amount))return toast('Monto inválido.',false);const id=`cash-opening-${period}-${branch}`;const old=Store.db.settings.find(x=>x.id===id);try{const data={id,period,branch,amount,responsible:currentOperator,updatedAt:now()};if(old)await Store.update('settings',id,data,currentOperator,'Actualización de saldo inicial de caja');else await Store.add('settings',data,currentOperator,'Carga de saldo inicial de caja');toast('Saldo inicial guardado y auditado.');refresh()}catch(e){toast(e.message,false)}}
+async function quickInvoiceSave(){
+ if(!currentOperator){toast('Elegí responsable antes de cargar facturas.',false);return}
+ if(branch==='General'){toast('Para cargar una factura elegí una sucursal concreta.',false);return}
+ const providerText=$('#quickInvoiceProvider')?.value.trim(), amount=Number(($('#quickInvoiceAmount')?.value||'').replace(/\./g,'').replace(',','.')), operationDate=$('#quickInvoiceDate')?.value||today(), number=$('#quickInvoiceNumber')?.value.trim()||'';
+ if(!providerText){toast('Indicá el proveedor.',false);return}
+ if(!Number.isFinite(amount)||amount<0){toast('Indicá un importe válido.',false);return}
+ const master=Store.list('providers').find(x=>x.name.trim().toLowerCase()===providerText.toLowerCase())||Store.list('providers').find(x=>x.name.trim().toLowerCase().startsWith(providerText.toLowerCase()));
+ if(!master){toast('El proveedor no existe en el maestro. Elegilo de la lista o crealo primero.',false);return}
+ try{const p=operationDate.slice(0,7);const late=Store.periodIsClosed(p,branch);const data={provider:master.name,number,operationDate,loadDate:now(),branch,amount,period:p,status:'CARGADA',notes:'Carga rápida'};await Store.add('invoices',data,currentOperator,'Carga rápida de factura',{lateMovement:late});if(late){const latest=Store.db.closures.filter(x=>x.period===p&&x.branch===branch&&x.status==='closed').sort((a,b)=>Number(b.version||0)-Number(a.version||0))[0];if(latest)await generateClosurePDF(latest)}toast(late?'Factura cargada en período cerrado; cierre versionado.':'Factura cargada correctamente.');refresh()}catch(e){toast(e.message,false)}}
+async function ensureXLSX(){
+ if(typeof XLSX!=="undefined") return XLSX;
+ if(typeof window.XLSX!=="undefined") return window.XLSX;
+ if(window.__BLUNNO_XLSX_LOADER__) return window.__BLUNNO_XLSX_LOADER__;
+ window.__BLUNNO_XLSX_LOADER__=new Promise((resolve,reject)=>{
+   const script=document.createElement("script");
+   script.src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js";
+   script.onload=()=>window.XLSX?resolve(window.XLSX):reject(new Error("El módulo Excel se cargó sin exponer XLSX."));
+   script.onerror=()=>reject(new Error("No se pudo cargar el módulo Excel. Revisá la conexión a internet e intentá nuevamente."));
+   (document.head||document.body).appendChild(script);
+ });
+ return window.__BLUNNO_XLSX_LOADER__;
+}
+
+async function handleExcel(e){
+ const f=e.target.files?.[0]; if(!f)return; const box=$('#importPreview'); box.innerHTML='<div class="loading">Leyendo Excel y preparando revisión…</div>';
+ try{const XLSXLib=await ensureXLSX(); const wb=XLSXLib.read(await f.arrayBuffer(),{type:'array',cellDates:true});box.innerHTML=`<div class="notice success"><b>${esc(f.name)}</b> leído correctamente: ${wb.SheetNames.length} hojas.</div>`+wb.SheetNames.map((s,i)=>`<div class="sheet-preview"><div><b>${esc(s)}</b><span>Hoja ${i+1}</span></div><button class="secondary-button sync-sheet" data-sheet="${encodeURIComponent(s)}">Analizar hoja</button></div>`).join('');document.querySelectorAll('.sync-sheet').forEach(b=>b.onclick=()=>analyzeSheet(wb,decodeURIComponent(b.dataset.sheet),f.name));}
+ catch(err){box.innerHTML=`<div class="notice danger-box">No se pudo leer el Excel: ${esc(err.message)}</div>`}
+}
+function normalizeImport(v){return String(v??'').trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\s+/g,' ')}
+function parseExcelDate(v){if(v instanceof Date&&!Number.isNaN(v.getTime()))return `${v.getFullYear()}-${String(v.getMonth()+1).padStart(2,'0')}-${String(v.getDate()).padStart(2,'0')}`;const s=String(v??'').trim();if(/^\d{4}-\d{2}-\d{2}$/.test(s))return s;const m=s.match(/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](20\d{2})$/);if(m)return `${m[3]}-${String(m[2]).padStart(2,'0')}-${String(m[1]).padStart(2,'0')}`;const n=Number(v);if(Number.isFinite(n)&&n>20000&&n<60000){const d=new Date(Date.UTC(1899,11,30)+n*86400000);return `${d.getUTCFullYear()}-${String(d.getUTCMonth()+1).padStart(2,'0')}-${String(d.getUTCDate()).padStart(2,'0')}`;}return null}
+function parseImportHours(v,marker=''){const raw=String(v??'').trim().replace(',','.');const mk=normalizeImport(marker||v);if(/^f(ra(nco)?)?$/.test(mk))return {hours:0,displayValue:'F',holiday:'no'};if(/^h|feriado$/.test(mk)&&!Number.isFinite(Number(raw)))return {hours:8,displayValue:'H',holiday:'yes'};const hm=raw.match(/^(\d+(?:\.\d+)?)\s*h$/i);if(hm)return {hours:Number(hm[1]),displayValue:`${Number(hm[1])}H`,holiday:'yes'};const hours=Number(raw);if(Number.isFinite(hours)&&hours>=0&&hours<=24)return {hours,displayValue:hours,holiday:/^(h|feriado)$/i.test(mk)?'yes':'no'};return null}
+async function analyzeSheet(wb,sheet,fileName){
+ if(!currentOperator){toast('Elegí responsable antes de sincronizar.',false);return}
+ const XLSXLib=await ensureXLSX();
+ const ws=wb.Sheets[sheet], rows=XLSXLib.utils.sheet_to_json(ws,{header:1,defval:'',raw:true});
+ const errors=[], operations=[]; const empRows=Store.list('employees');
+ let headerIndex=-1, map={};
+ for(let i=0;i<Math.min(rows.length,25);i++){const h=rows[i].map(normalizeImport);const idx={employee:h.findIndex(x=>/empleado|nombre/.test(x)),date:h.findIndex(x=>/fecha|dia/.test(x)),hours:h.findIndex(x=>/hora/.test(x)),branch:h.findIndex(x=>/sucursal|local/.test(x)),holiday:h.findIndex(x=>/feriado/.test(x)),advance:h.findIndex(x=>/adelanto|vale/.test(x)),merchandise:h.findIndex(x=>/mercaderia|mercadería|vale/.test(x))};if(idx.employee>=0&&idx.date>=0&&idx.hours>=0){headerIndex=i;map=idx;break;}}
+ if(headerIndex>=0){
+   for(let r=headerIndex+1;r<rows.length;r++){const row=rows[r];if(!row.length||row.every(v=>String(v??'').trim()===''))continue;const employeeText=String(row[map.employee]??'').trim();const date=parseExcelDate(row[map.date]);const emp=empRows.find(x=>normalizeImport(x.name)===normalizeImport(employeeText));if(!emp){errors.push({row:r+1,message:`Empleado no encontrado: ${employeeText||'sin nombre'}`});continue}if(!date){errors.push({row:r+1,message:'Fecha inválida o vacía.'});continue}const h=parseImportHours(row[map.hours],map.holiday>=0?row[map.holiday]:'');if(!h){errors.push({row:r+1,message:'Horas inválidas. Usá un número, F o H.'});continue}const sourceKey=`${fileName}|${sheet}|${r}|${emp.id}|${date}`;const data={period:date.slice(0,7),date,branch:emp.branch,employeeId:emp.id,employee:emp.name,hours:h.hours,displayValue:h.displayValue,holiday:h.holiday,advance:map.advance>=0?Number(String(row[map.advance]??0).replace(/\./g,'').replace(',','.'))||0:0,merchandise:map.merchandise>=0?Number(String(row[map.merchandise]??0).replace(/\./g,'').replace(',','.'))||0:0,salaryCost:h.hours*Number(emp.hourlyRate||0)};if(normalizeImport(employeeText)!==normalizeImport(emp.name))data.sourceWarning=`Nombre Excel coincide por normalización con ${emp.name}`;operations.push({collection:'hours',sourceKey,data,row:r+1});}
+ }else{
+   // Fallback para hojas donde el nombre del empleado es el nombre de la hoja y los encabezados contienen días 1..31.
+   const emp=empRows.find(x=>normalizeImport(x.name)===normalizeImport(sheet));
+   if(emp){const header=rows.findIndex(row=>row.some(v=>/lunes|martes|miercoles|jueves|viernes|sabado|domingo/i.test(String(v||''))||/\b\d{1,2}\b/.test(String(v||''))));if(header>=0){const row=rows[header], dayCols=[];row.forEach((v,c)=>{const m=String(v||'').match(/(\d{1,2})$/);if(m)dayCols.push({day:Number(m[1]),col:c})});const dataRow=rows[header+1]||[];for(const dc of dayCols){if(dc.day<1||dc.day>31)continue;const date=parseExcelDate(`${period}-${String(dc.day).padStart(2,'0')}`);const h=parseImportHours(dataRow[dc.col]??'');if(!h)continue;operations.push({collection:'hours',sourceKey:`${fileName}|${sheet}|${header+1}|${emp.id}|${date}`,data:{period,date,branch:emp.branch,employeeId:emp.id,employee:emp.name,hours:h.hours,displayValue:h.displayValue,holiday:h.holiday,advance:0,merchandise:0,salaryCost:h.hours*Number(emp.hourlyRate||0)},row:header+2});}}}
+   else errors.push({row:0,message:'No se encontró una fila de encabezados compatible ni un empleado con el nombre de la hoja.'});
+ }
+ window.__blunnoPendingImport={operations,errors,fileName,sheet};
+ const preview=operations.slice(0,12).map(op=>`<tr><td>${op.row}</td><td>${esc(op.data.employee)}</td><td>${dateLabel(op.data.date)}</td><td>${esc(op.data.displayValue)}</td><td>${money(op.data.advance+op.data.merchandise)}</td></tr>`).join('');
+ $('#importPreview').innerHTML=`<div class="import-result-head"><div><b>Revisión: ${esc(sheet)}</b><span>${rows.length} filas leídas · ${operations.length} válidas · ${errors.length} requieren revisión.</span></div>${operations.length?'<button class="primary-button" id="confirmExcelImport">Confirmar importación</button>':''}</div>${errors.length?`<div class="notice warning"><b>Revisá ${errors.length} fila(s)</b><ul>${errors.slice(0,12).map(x=>`<li>Fila ${x.row}: ${esc(x.message)}</li>`).join('')}</ul></div>`:''}${operations.length?`<div class="table-wrap"><table><thead><tr><th>Fila</th><th>Empleado</th><th>Fecha</th><th>Valor</th><th>Adelanto + mercadería</th></tr></thead><tbody>${preview}</tbody></table></div><p class="cell-note">Solo se guardarán después de presionar “Confirmar importación”. No se crean empleados nuevos automáticamente.</p>`:'<div class="empty-block">No se encontraron filas importables.</div>'}`;
+ $('#confirmExcelImport')?.addEventListener('click',confirmExcelImport);
+}
+async function confirmExcelImport(){const p=window.__blunnoPendingImport;if(!p||!currentOperator)return;const btn=$('#confirmExcelImport');if(btn?.dataset.busy==='1')return;if(btn)btn.dataset.busy='1';let imported=0,failed=0;try{for(const op of p.operations){try{await Store.upsertBySource(op.collection,op.sourceKey,op.data,currentOperator,`Importación Excel · ${p.fileName} · ${p.sheet} · fila ${op.row}`);imported++;}catch(e){failed++;}}await Store.add('imports',{date:today(),period,branch,sourceFile:p.fileName,sheet:p.sheet,rowsRead:p.operations.length+p.errors.length,imported,errors:p.errors.length+failed,status:failed||p.errors.length?'review':'complete'},currentOperator,'Registro de importación Excel');toast(`Importación completada: ${imported} importados, ${p.errors.length+failed} requieren revisión.`);window.__blunnoPendingImport=null;refresh();}catch(e){toast(`No se pudo completar la importación: ${e.message}`,false)}finally{if(btn)btn.dataset.busy='0'}}
+async function exportExcel(){
+ if(!currentOperator){toast('Elegí el responsable en la barra superior antes de exportar.',false);return}
+ const XLSXLib=await ensureXLSX();
+ const wb=XLSXLib.utils.book_new(); const s=Store.summary(period,branch);
+ const summary=[['DISTRIBUIDORA BLUNNO'],['Período',periodLabel(period)],['Perfil',branch],[],['Indicador','Monto'],['Ingresos',s.income],['Gastos caja',s.cashExpense],['Gastos local',s.localExpense],['Inversiones',s.investment],['Personal',s.salary],['Proveedores',s.providers],['Resultado',s.result]];
+ XLSXLib.utils.book_append_sheet(wb,XLSXLib.utils.aoa_to_sheet(summary),'Resumen');
+ ['incomes','cash','invoices','expenses','investments','hours','liquidations'].forEach(n=>{const data=Store.list(n,period,branch).map(x=>{const o={...x};delete o.deleted;return o});XLSXLib.utils.book_append_sheet(wb,XLSXLib.utils.json_to_sheet(data.length?data:[{sin_registros:''}]),n.slice(0,31))});
+ const name=`blunno-${period}-${branch.replace(/\s+/g,'-').toLowerCase()}.xlsx`;
+ const bytes=XLSXLib.write(wb,{bookType:'xlsx',type:'array'}); const blob=new Blob([bytes],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+ let url=null; try{url=await uploadFile(storagePathFor(period,branch,'Exportación Excel',name),blob,blob.type)}catch(e){console.warn(e)}
+ 
+ await Store.archiveFile({name,sector:'Exportación Excel',period,branch,responsible:currentOperator,mime:blob.type,createdAt:now(),sourceCollection:'imports',url,storagePath:storagePathFor(period,branch,'Exportación Excel',name),blob});
+ downloadBlob(blob,name);  toast('Excel exportado y archivado.');
+}
+
+function printBlob(blob){
+ try{
+   const url=URL.createObjectURL(blob); const frame=document.createElement('iframe'); frame.style.position='fixed'; frame.style.right='0'; frame.style.bottom='0'; frame.style.width='1px'; frame.style.height='1px'; frame.style.opacity='0'; frame.src=url; document.body.appendChild(frame);
+   frame.onload=()=>setTimeout(()=>{try{frame.contentWindow?.focus();frame.contentWindow?.print()}catch(e){toast('El navegador no permitió imprimir el documento.',false)}setTimeout(()=>{URL.revokeObjectURL(url);frame.remove()},60000)},700);
+ }catch(e){toast(`No se pudo preparar la impresión: ${e.message}`,false)}
+}
+async function printStoredFile(id){try{const blob=await Store.getFileBlob(id);if(!blob)throw new Error('No se encontró el archivo.');printBlob(blob)}catch(e){toast(`No se pudo imprimir: ${e.message}`,false)}}
+function dosDateTime(){const d=new Date();return {time:(d.getHours()<<11)|(d.getMinutes()<<5)|Math.floor(d.getSeconds()/2),date:((d.getFullYear()-1980)<<9)|((d.getMonth()+1)<<5)|d.getDate()};}
+function crc32(bytes){let c=0xffffffff;for(const b of bytes){c^=b;for(let k=0;k<8;k++)c=(c>>>1)^((c&1)?0xedb88320:0);}return (c^0xffffffff)>>>0;}
+function u16(n){return new Uint8Array([n&255,(n>>>8)&255]);}
+function u32(n){return new Uint8Array([n&255,(n>>>8)&255,(n>>>16)&255,(n>>>24)&255]);}
+function concatBytes(chunks){const total=chunks.reduce((n,x)=>n+x.length,0);const out=new Uint8Array(total);let o=0;for(const x of chunks){out.set(x,o);o+=x.length}return out;}
+function zipStored(entries){const enc=new TextEncoder(),parts=[],central=[];let offset=0;const dt=dosDateTime();for(const entry of entries){const name=enc.encode(entry.name),data=entry.data instanceof Uint8Array?entry.data:new Uint8Array(entry.data);const crc=crc32(data);const local=concatBytes([u32(0x04034b50),u16(20),u16(0x0800),u16(0),u16(dt.time),u16(dt.date),u32(crc),u32(data.length),u32(data.length),u16(name.length),u16(0),name,data]);parts.push(local);central.push({name,crc,size:data.length,offset});offset+=local.length;}const centralStart=offset;for(const c of central){parts.push(concatBytes([u32(0x02014b50),u16(20),u16(20),u16(0x0800),u16(0),u16(dt.time),u16(dt.date),u32(c.crc),u32(c.size),u32(c.size),u16(c.name.length),u16(0),u16(0),u16(0),u16(0),u32(0),u32(c.offset),c.name]));offset+=46+c.name.length;}const centralSize=offset-centralStart;parts.push(concatBytes([u32(0x06054b50),u16(0),u16(0),u16(central.length),u16(central.length),u32(centralSize),u32(centralStart),u16(0)]));return new Blob(parts,{type:'application/zip'});}
+async function createBackupZip(){if(!currentOperator){toast('Elegí responsable antes de hacer un backup.',false);return null}try{const state=JSON.parse(JSON.stringify(Store.db));const manifest=[];const entries=[{name:'datos/blunno.json',data:new TextEncoder().encode(JSON.stringify(state,null,2))}];for(const file of Store.list('files')){try{const blob=await Store.getFileBlob(file.id);if(blob){const bytes=new Uint8Array(await blob.arrayBuffer());const entryName=`archivos/${file.id}`;entries.push({name:entryName,data:bytes});manifest.push({id:file.id,name:file.name,mime:file.mime||'application/octet-stream',entry:entryName});}}catch(e){manifest.push({id:file.id,name:file.name,mime:file.mime||'',entry:null,error:e.message})}}entries.push({name:'datos/manifest_archivos.json',data:new TextEncoder().encode(JSON.stringify(manifest,null,2))});const blob=zipStored(entries);const name=`BLUNNO_BACKUP_${today()}.zip`;downloadBlob(blob,name);toast(`Backup completo generado: ${entries.length-2} archivos documentales incluidos.`);return {blob,name,entries:entries.map(x=>x.name)}}catch(e){toast(`No se pudo generar el backup: ${e.message}`,false);return null}}
+function readZipEntries(bytes){const dv=new DataView(bytes.buffer,bytes.byteOffset,bytes.byteLength);const sig=0x06054b50;let eocd=-1;for(let i=bytes.length-22;i>=Math.max(0,bytes.length-65558);i--){if(dv.getUint32(i,true)===sig){eocd=i;break}}if(eocd<0)throw new Error('El ZIP no tiene una estructura reconocible.');const count=dv.getUint16(eocd+10,true),cdOffset=dv.getUint32(eocd+16,true),entries={};let pos=cdOffset;const dec=new TextDecoder();for(let i=0;i<count;i++){if(dv.getUint32(pos,true)!==0x02014b50)throw new Error('Entrada ZIP inválida.');const nameLen=dv.getUint16(pos+28,true),extraLen=dv.getUint16(pos+30,true),commentLen=dv.getUint16(pos+32,true),method=dv.getUint16(pos+10,true),size=dv.getUint32(pos+24,true),offset=dv.getUint32(pos+42,true);const name=dec.decode(bytes.slice(pos+46,pos+46+nameLen));if(method!==0)throw new Error('El backup usa compresión no compatible. Generá nuevamente el backup desde BLUNNO.');const lp=offset;if(dv.getUint32(lp,true)!==0x04034b50)throw new Error('Cabecera local ZIP inválida.');const ln=dv.getUint16(lp+26,true),le=dv.getUint16(lp+28,true);const dataStart=lp+30+ln+le;entries[name]=bytes.slice(dataStart,dataStart+size);pos+=46+nameLen+extraLen+commentLen;}return entries;}
+async function restoreBackupFile(file){if(!file||!currentOperator)return;if(!confirm('Vas a restaurar un backup. Esto reemplazará los datos actuales del modo local por la copia elegida. ¿Continuar?'))return;try{const bytes=new Uint8Array(await file.arrayBuffer());let data,manifest=[];if(/\.zip$/i.test(file.name)||file.type==='application/zip'){const entries=readZipEntries(bytes);const json=entries['datos/blunno.json'];if(!json)throw new Error('El backup no contiene datos/blunno.json.');data=JSON.parse(new TextDecoder().decode(json));if(entries['datos/manifest_archivos.json'])manifest=JSON.parse(new TextDecoder().decode(entries['datos/manifest_archivos.json']));await Store.importState(data,currentOperator);let restored=0;for(const m of manifest){if(!m.entry||!entries[m.entry])continue;try{await Store.restoreFileBlob(m.id,new Blob([entries[m.entry]],{type:m.mime||'application/octet-stream'}),currentOperator);restored++}catch(e){console.warn('Restore file',m.id,e)}}toast(`Backup restaurado. ${restored} documentos recuperados.`);}else{data=JSON.parse(new TextDecoder().decode(bytes));await Store.importState(data,currentOperator);toast('Backup JSON restaurado correctamente.');}refresh();}catch(e){toast(`No se pudo restaurar el backup: ${e.message}`,false)}}
+
+function checkReminders(){const due=Store.list('tasks').filter(x=>x.status!=='completed').sort((a,b)=>`${a.dueDate} ${a.dueTime}`.localeCompare(`${b.dueDate} ${b.dueTime}`))[0];if(!due)return;const nowD=new Date(),d=new Date(`${due.dueDate}T${due.dueTime||'23:59'}:00`);if(d<=nowD||due.dueDate===today()){$('#reminderTitle').textContent=due.priority==='urgent'?'⚠ RECORDATORIO URGENTE':'🔔 TENÉS UN RECORDATORIO';$('#reminderText').textContent=due.title;$('#reminderMeta').textContent=`📅 ${dateLabel(due.dueDate)} — ${due.dueTime||'sin hora'} · 👤 ${due.responsible}`;$('#reminderModal').classList.remove('hidden');$('#reminderDone').onclick=()=>completeTask(due.id);}}
+
+function agentSay(html,who='bot'){
+  const box=$('#agentMessages');
+  const key=`blunno-agent-chat-${agentPerson||'sin-usuario'}`;
+  try{const h=JSON.parse(localStorage.getItem(key)||'[]');h.push({who,html,at:now()});localStorage.setItem(key,JSON.stringify(h.slice(-160)))}catch(e){}
+  if(!box)return;
+  box.insertAdjacentHTML('beforeend',`<div class="agent-message ${who}">${html}</div>`);
+  box.scrollTop=box.scrollHeight;
+}
+function rememberAgentPerson(p){
+  if(!CONFIG.responsiblePeople.includes(p))return;
+  agentPerson=p;
+  const el=$('#agentCurrentPerson');if(el)el.textContent=p;
+  agentSay(`<b>Agente BLUNNO</b><span>Perfecto, ${esc(p)}. Estoy operando como <b>${esc(p)}</b>. Podés hablarme o escribirme normalmente.</span>`);
+}
+function agentText(){
+  const input=$('#agentInput');const text=input?.value.trim();if(!text)return;
+  input.value='';
+  if(!agentPerson){agentSay('<b>Agente BLUNNO</b><span>Primero elegí si estoy hablando con Agus, Nico, Luz o Flor.</span>');return;}
+  agentSay(`<b>${esc(agentPerson)}</b><span>${esc(text)}</span>`,'user');
+  processAgent(text);
+}
+function parseMoney(text){
+  const rawText=String(text||'').replace(/\$/g,'');
+  const matches=[...rawText.matchAll(/(?:^|\s)(\d{1,3}(?:[.\s]\d{3})*(?:,\d{1,2})?|\d+(?:,\d{1,2})?)(?=\s*(?:pesos?|ars)?(?:\s|$))/gi)];
+  if(!matches.length)return null;
+  const raw=matches[matches.length-1][1].replace(/\s/g,'').replace(/\.(?=\d{3}(?:\D|$))/g,'').replace(',','.');
+  const n=Number(raw);return Number.isFinite(n)?n:null;
+}
+function normalizeAgentText(text){return String(text||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[¿?¡!]/g,'').replace(/\s+/g,' ').trim()}
+function detectBranch(text){
+  const l=normalizeAgentText(text);
+  return CONFIG.branches.find(b=>l.includes(normalizeAgentText(b))) || (l.includes('general')?'General':null);
+}
+function detectPeriod(text){
+  const l=normalizeAgentText(text);
+  const months={enero:'01',febrero:'02',marzo:'03',abril:'04',mayo:'05',junio:'06',julio:'07',agosto:'08',septiembre:'09',setiembre:'09',octubre:'10',noviembre:'11',diciembre:'12'};
+  const ym=l.match(/\b(20\d{2})[-\/]?(0[1-9]|1[0-2])\b/);if(ym)return `${ym[1]}-${ym[2]}`;
+  for(const [name,num] of Object.entries(months)){if(l.includes(name)){const y=(l.match(/\b(20\d{2})\b/)||[])[1]||period.slice(0,4);return `${y}-${num}`;}}
+  if(/este mes|mes actual/.test(l))return period;
+  if(/mes pasado|ultimo mes/.test(l))return prevPeriod(period);
+  if(/proximo mes|siguiente mes/.test(l))return nextPeriod(period);
+  return period;
+}
+function dateFromAgent(text, fallback=today()){
+  const l=normalizeAgentText(text);
+  const d=l.match(/\b(\d{1,2})[\/\-](\d{1,2})(?:[\/\-](20\d{2}))?\b/);
+  if(d){const y=d[3]||fallback.slice(0,4);return `${y}-${String(d[2]).padStart(2,'0')}-${String(d[1]).padStart(2,'0')}`;}
+  if(l.includes('hoy'))return today();
+  const x=new Date(`${today()}T12:00:00`);
+  if(l.includes('anteayer')){x.setDate(x.getDate()-2);return x.toISOString().slice(0,10)}
+  if(l.includes('ayer')){x.setDate(x.getDate()-1);return x.toISOString().slice(0,10)}
+  if(l.includes('pasado manana')){x.setDate(x.getDate()+2);return x.toISOString().slice(0,10)}
+  if(l.includes('manana')){x.setDate(x.getDate()+1);return x.toISOString().slice(0,10)}
+  return fallback;
+}
+function agentPriority(text){const l=normalizeAgentText(text);return /urgente|ya mismo|inmediatamente/.test(l)?'urgent':/alta|importante/.test(l)?'high':'normal'}
+function agentFindProvider(text){
+  const l=normalizeAgentText(text);
+  const rows=Store.list('providers').filter(x=>x.active!==false);
+  const explicit=(l.match(/(?:proveedor|de|a|para)\s+([a-z0-9][a-z0-9 .&'’()/-]{1,80})/i)||[])[1];
+  const hay=[explicit,l].filter(Boolean);
+  for(const source of hay){
+    const s=normalizeAgentText(source);
+    const exact=rows.find(x=>normalizeAgentText(x.name)===s);if(exact)return exact;
+    const hits=rows.filter(x=>s.includes(normalizeAgentText(x.name))||normalizeAgentText(x.name).includes(s)).sort((a,b)=>normalizeAgentText(b.name).length-normalizeAgentText(a.name).length);
+    if(hits[0])return hits[0];
+  }
+  return null;
+}
+function agentFindEmployee(text, scopeBranch='General'){
+  const l=normalizeAgentText(text);let rows=Store.list('employees').filter(x=>x.active!==false);
+  if(scopeBranch!=='General')rows=rows.filter(x=>x.branch===scopeBranch);
+  const exact=rows.find(x=>l.includes(normalizeAgentText(x.name)));if(exact)return exact;
+  const after=(l.match(/(?:empleado|de|para)\s+([a-z0-9 .'-]{2,60})/i)||[])[1];
+  if(after){const a=normalizeAgentText(after);return rows.find(x=>a.includes(normalizeAgentText(x.name))||normalizeAgentText(x.name).includes(a))||null;}
+  return null;
+}
+function agentPeriodAndBranch(text){return {period:detectPeriod(text),branch:detectBranch(text)||branch};}
+function agentRowsSummary(collection,p,b){return Store.list(collection,p,b)}
+function agentOpen(viewName){navigate(viewName);agentSay(`<b>✓ Listo</b><span>Te abrí <b>${esc(titles[viewName]||viewName)}</b>.</span>`)}
+function agentQueryResult(title,html){agentSay(`<b>${esc(title)}</b><span>${html}</span>`)}
+function agentList(items, empty='No hay registros.'){return items.length?items.slice(0,20).map(x=>`<small class="agent-line">${esc(x)}</small>`).join(''):`<small class="agent-line">${esc(empty)}</small>`}
+function agentRecordLabel(x){return x.provider||x.concept||x.title||x.name||x.employee||x.id}
+function agentConfirmationButtons(){
+  const box=$('#agentMessages');if(!box)return;
+  const card=box.lastElementChild;
+  card?.querySelector('[data-agent-confirm]')?.addEventListener('click',confirmAgent);
+  card?.querySelector('[data-agent-cancel]')?.addEventListener('click',()=>{pendingAgent=null;agentSay('<span>Acción cancelada. No se modificó ningún dato.</span>')});
+}
+function showAgentConfirmation(label){
+  const p=pendingAgent;if(!p)return;
+  const missing=p.missing||[];
+  const missingHtml=missing.length?`<div class="notice warning">Falta definir: ${missing.map(esc).join(', ')}.</div>`:'';
+  agentSay(`<div class="agent-confirm"><b>${esc(label)}</b><div class="notice">${esc(p.preview||'Revisá los datos antes de guardar.')}</div>${missingHtml}<pre>${esc(JSON.stringify(p.data,null,2))}</pre><div>${missing.length?'':`<button class="primary-button" data-agent-confirm>Confirmar y ejecutar</button>`}<button class="secondary-button" data-agent-cancel>Cancelar</button></div></div>`);
+  agentConfirmationButtons();
+}
+function makePending(type,data,missing,preview){pendingAgent={type,data,missing:[...new Set(missing)],preview};showAgentConfirmation(`Preparar ${type==='invoice'?'factura':type==='expense'?'gasto':type==='investment'?'inversión':type==='cash'?'movimiento de caja':type==='hours'?'horas':type==='employee'?'empleado':type==='provider'?'proveedor':type==='invoicePayment'?'pago de factura':'recordatorio'}`)}
+function pendingFillFromText(text){
+  if(!pendingAgent?.missing?.length)return false;
+  const l=normalizeAgentText(text),p=pendingAgent;
+  if(p.missing.includes('sucursal concreta')){const b=detectBranch(text);if(b&&b!=='General'){p.data.branch=b;p.missing=p.missing.filter(x=>x!=='sucursal concreta')}}
+  if(p.missing.includes('proveedor')){const v=agentFindProvider(text);if(v){p.data.provider=v.name;p.missing=p.missing.filter(x=>x!=='proveedor')}}
+  if(p.missing.includes('empleado')){const e=agentFindEmployee(text,p.data.branch||branch);if(e){p.data.employee=e.name;p.data.employeeId=e.id;p.missing=p.missing.filter(x=>x!=='empleado')}}
+  if(p.missing.includes('importe')){const n=parseMoney(text);if(n!==null){p.data.amount=n;p.missing=p.missing.filter(x=>x!=='importe')}}
+  if(p.missing.includes('cantidad de horas')){const m=l.match(/(\d+(?:[,.]\d+)?)\s*horas?/);if(m){p.data.hours=Number(m[1].replace(',','.'));p.missing=p.missing.filter(x=>x!=='cantidad de horas')}}
+  if(p.missing.includes('nombre del empleado')){const n=text.replace(/^(agrega|agreg[aá]|crea|crear|nuevo|nueva|empleado|personal)\s*/i,'').trim();if(n.length>=2){p.data.name=n;p.missing=p.missing.filter(x=>x!=='nombre del empleado')}}
+  if(p.missing.includes('categoría')){const c=CONFIG.expenseCategories.find(x=>l.includes(normalizeAgentText(x)));if(c){p.data.category=c;p.missing=p.missing.filter(x=>x!=='categoría')}}
+  if(p.missing.includes('fecha')){const d=dateFromAgent(text,null);if(d){p.data.date=d;p.data.period=d.slice(0,7);p.missing=p.missing.filter(x=>x!=='fecha')}}
+  if(p.type==='invoice'&&p.data.branch&&p.data.operationDate){p.data.period=p.data.operationDate.slice(0,7)}
+  if(!p.missing.length){showAgentConfirmation('Datos completos — listo para confirmar');return true}
+  showAgentConfirmation('Falta completar un dato');return true;
+}
+function agentDateTime(text){const d=dateFromAgent(text,today()),m=String(text).match(/\b([01]?\d|2[0-3]):([0-5]\d)\b/);return {date:d,time:m?`${String(m[1]).padStart(2,'0')}:${m[2]}`:''}}
+function agentProviderNameFromText(text){
+  const l=normalizeAgentText(text);const rows=Store.list('providers').filter(x=>x.active!==false);
+  const candidates=rows.filter(x=>l.includes(normalizeAgentText(x.name))).sort((a,b)=>normalizeAgentText(b.name).length-normalizeAgentText(a.name).length);
+  return candidates[0]||null;
+}
+function agentEmployeeFromText(text,scopeBranch){return agentFindEmployee(text,scopeBranch)}
+function agentSummary(p,b){
+  const s=Store.summary(p,b);return `Perfil: <b>${esc(b)}</b> · ${periodLabel(p)} · ingresos ${money(s.income)} · gastos caja ${money(s.cashExpense)} · gastos del local ${money(s.localExpense)} · proveedores ${money(s.providers)} · inversiones ${money(s.investment)} · personal ${money(s.salary)} · resultado ${money(s.result)}.`;
+}
+async function processAgent(text){
+  const l=normalizeAgentText(text);
+  try{await Store.recordAudit('AGENT_QUERY','agent',{question:text},{view,period,branch},agentPerson,'Consulta realizada por Agente BLUNNO')}catch(e){}
+  if(pendingAgent && /^(confirmar|confirma|si|sí|dale|hacerlo|ejecuta|ejecutalo|guardalo|guardar|ok|okay)$/i.test(l)){await confirmAgent();return}
+  if(pendingAgent && /^(cancelar|cancela|no|anular|anula)$/i.test(l)){pendingAgent=null;agentSay('<span>Cancelado. No se modificó ningún dato.</span>');return}
+  if(pendingAgent && pendingFillFromText(text))return;
+  const ctx=agentPeriodAndBranch(text), scopeBranch=ctx.branch, scopePeriod=ctx.period;
+  const nav={inicio:'dashboard',panel:'dashboard',dashboard:'dashboard',caja:'cash',facturas:'invoices',factura:'invoices',proveedores:'providers',proveedor:'providers',gastos:'expenses',inversiones:'investments',inversion:'investments',personal:'people',empleados:'people',horas:'hours',resultados:'results',comparativas:'compare',comparativa:'compare',recordatorios:'tasks',tareas:'tasks',archivos:'files',historial:'history',papelera:'trash',cierre:'close',agente:'agent'};
+  const navKey=Object.keys(nav).find(k=>l.includes(k));
+  if(/^(abr|mostrame|mostrar|lleva(me|nos)|ir a|entra(r)?|quiero ver|ver|pasame|pasame a)/.test(l)&&navKey){agentOpen(nav[navKey]);return;}
+  if(/^(ayuda|que podes|que puedes|comandos|como te uso|que haces|en que me ayudas)/.test(l)){
+    agentSay('<b>Agente BLUNNO</b><span>Puedo consultar y preparar acciones sobre caja, facturas, proveedores, gastos, inversiones, personal, horas, liquidaciones, recordatorios, archivos, resultados, comparativas y cierre. También puedo generar PDF, exportar Excel, hacer backup, abrir sectores y buscar registros. Toda modificación requiere confirmación y queda auditada.</span>');return;
+  }
+  if(/quien soy|con quien|responsable actual/.test(l)){agentQueryResult('Responsable',`Estás operando como <b>${esc(agentPerson)}</b>.`);return;}
+  if(/^(prepara|preparame|prepará|preparame) .*cierre|^(cerrar|hace|hacer|confirmar|confirma) .*cierre/.test(l)){agentOpen('close');agentSay('<span>Te llevé al control previo de cierre. Ahí se revisan todos los puntos y el cierre requiere confirmación.</span>');return;}
+  if(/pdf|documento.*pdf|gener[aá].*pdf/.test(l)){
+    const type=/factura|proveedor/.test(l)?'invoices':/caja/.test(l)?'cash':/hora|personal|empleado/.test(l)?'hours':/gasto/.test(l)?'expenses':/inversion/.test(l)?'investments':/compar/.test(l)?'compare':/resultado|resumen/.test(l)?'results':null;
+    if(type){await generateAndShowViewPDF(type);return;}
+    agentSay('<span>Decime qué PDF querés: caja, facturas, gastos, inversiones, horas, resultados o comparativa.</span>');return;
+  }
+  if(/exporta|exportar|excel/.test(l)&&/excel/.test(l)){await exportExcel();agentSay('<span>✓ Excel generado y archivado.</span>');return;}
+  if(/backup|respaldo|copia de seguridad/.test(l)){await createBackupZip();agentSay('<span>✓ Backup completo ZIP preparado.</span>');return;}
+  if(/caja|saldo/.test(l)&&/(saldo|ingreso|egreso|gasto|resto|final|cuanto|cuánto)/.test(l)){
+    const rows=agentRowsSummary('cash',scopePeriod,scopeBranch),inc=rows.filter(x=>x.type==='income').reduce((a,x)=>a+Number(x.amount||0),0),exp=rows.filter(x=>x.type==='expense').reduce((a,x)=>a+Number(x.amount||0),0);
+    agentQueryResult('Caja',`${periodLabel(scopePeriod)} · ${esc(scopeBranch)} · ingresos ${money(inc)} · gastos ${money(exp)} · saldo neto ${money(inc-exp)} · movimientos ${rows.length}.`);return;
+  }
+  if(/facturas?|proveedores?/.test(l)&&/(historial|lista|mostrar|cuantas|cuántas|total|importe)/.test(l)){
+    const pv=agentProviderNameFromText(text);let rows=Store.list('invoices',scopePeriod,scopeBranch);if(pv)rows=rows.filter(x=>normalizeAgentText(x.provider)===normalizeAgentText(pv.name));const total=rows.reduce((a,x)=>a+Number(x.amount||0),0);agentQueryResult(pv?`Facturas de ${pv.name}`:'Facturas cargadas',`${rows.length} facturas · total ${money(total)} en ${periodLabel(scopePeriod)} · ${esc(scopeBranch)}.${agentList(rows.map(x=>`${x.provider} · ${money(x.amount)} · ${dateLabel(x.operationDate||x.date)} · CARGADA`),'No hay facturas para ese período.')}`);return;
+  }
+  /* legacy payment query removed */
+  if(false){
+    const pv=agentProviderNameFromText(text);let rows=Store.list('invoices',scopePeriod,scopeBranch).filter(x=>x.status==='CARGADA');
+    if(pv)rows=rows.filter(x=>normalizeAgentText(x.provider)===normalizeAgentText(pv.name));
+    const total=rows.reduce((a,x)=>a+Number(x.amount||0),0);
+    agentQueryResult(pv?`Facturas de ${pv.name}`:'Facturas cargadas',`${rows.length} registros por ${money(total)} en ${periodLabel(scopePeriod)} · ${esc(scopeBranch)}.${agentList(rows.map(x=>`${x.provider} · ${money(Number(x.amount||0))} · ${dateLabel(x.operationDate||x.date)}`))}`);return;
+  }
+  if(/proveedores/.test(l)&&/(tenemos|lista|listar|todos|catalogo|catálogo|mostrar|mostrame)/.test(l)){
+    const ps=Store.list('providers').filter(x=>x.active!==false).sort((a,b)=>a.name.localeCompare(b.name,'es'));agentQueryResult('Catálogo de proveedores',agentList(ps.map(x=>x.name),'No hay proveedores cargados.'));return;
+  }
+  if(/facturas?/.test(l)&&/(mostrar|mostrame|lista|listar|historial|tenemos|hay)/.test(l)){
+    const pv=agentProviderNameFromText(text);let inv=Store.list('invoices',scopePeriod,scopeBranch);if(pv)inv=inv.filter(x=>normalizeAgentText(x.provider)===normalizeAgentText(pv.name));const total=inv.reduce((a,x)=>a+Number(x.amount||0),0);agentQueryResult('Facturas',`${inv.length} facturas · total ${money(total)} · ${periodLabel(scopePeriod)} · ${esc(scopeBranch)}.${agentList(inv.map(x=>`${x.provider} · ${money(x.amount)} · ${dateLabel(x.operationDate||x.date)} · CARGADA`),'No hay facturas para ese período.')}}`);return;
+  }
+  if(/proveedor/.test(l)&&/(buscar|busca|tenemos|existe|mostra|mostrar|cuanto|cuánto|historial|facturas)/.test(l)){
+    const p=agentProviderNameFromText(text)||agentFindProvider(l);if(!p){agentQueryResult('Proveedor','No encontré ese proveedor en el catálogo.');return;}
+    const inv=Store.list('invoices',scopePeriod,scopeBranch).filter(x=>normalizeAgentText(x.provider)===normalizeAgentText(p.name));const total=inv.reduce((a,x)=>a+Number(x.amount||0),0);
+    agentQueryResult(p.name,`${inv.length} facturas cargadas · importe total ${money(total)}.${agentList(inv.map(x=>`${x.provider} · ${money(x.amount)} · ${dateLabel(x.operationDate||x.date)} · CARGADA`))}`);return;
+  }
+  if(/(cuanto|cuánto|total|resumen|resultado|gastamos|ingresos|gastos|balance|neto)/.test(l)&&!/(factura|proveedor|caja)/.test(l)){agentQueryResult(`Resumen ${periodLabel(scopePeriod)}`,agentSummary(scopePeriod,scopeBranch));return;}
+  if(/(empleados|personal)/.test(l)&&/(mostrar|mostrame|lista|listar|tenemos|quien|quienes)/.test(l)){
+    const es=Store.list('employees').filter(x=>x.active!==false&&(scopeBranch==='General'||x.branch===scopeBranch));agentQueryResult('Personal',agentList(es.map(x=>`${x.name} · ${x.branch} · ${x.role||'sin puesto'}`),'No hay empleados en ese perfil.'));return;
+  }
+  if(/(horas|empleados|personal)/.test(l)&&/(cu[aá]nt|total|resumen|carg|trabaj|ficha|quien)/.test(l)){
+    const emp=agentEmployeeFromText(text,scopeBranch);if(emp){const rows=Store.list('hours',scopePeriod,scopeBranch).filter(x=>x.employeeId===emp.id);const h=rows.reduce((a,x)=>a+Number(x.hours||0),0);agentQueryResult(`Horas de ${emp.name}`,`${number(h)} horas en ${periodLabel(scopePeriod)} · adelantos ${money(rows.reduce((a,x)=>a+Number(x.advance||0),0))} · mercadería ${money(rows.reduce((a,x)=>a+Number(x.merchandise||0),0))}.`);return;}
+    const s=Store.summary(scopePeriod,scopeBranch);agentQueryResult('Horas',`${number(s.hours)} horas registradas en ${periodLabel(scopePeriod)} · ${esc(scopeBranch)}.`);return;
+  }
+  if(/(liquid|sueldo|salario)/.test(l)&&/(total|calcula|abr|mostrar|historial)/.test(l)){
+    const emp=agentEmployeeFromText(text,scopeBranch);if(!emp){agentQueryResult('Liquidación','Decime el nombre del empleado para abrir su liquidación.');return;}openLiquidation(emp.id);agentSay(`<span>Te abrí la liquidación de <b>${esc(emp.name)}</b>. Revisá el valor hora y confirmá la totalización.</span>`);return;
+  }
+  if(/(tarea|recordatorio)/.test(l)&&/(pendiente|proxim|hoy|mostrar|listar|que tengo)/.test(l)){
+    const rows=Store.list('tasks').filter(x=>x.status!=='completed').sort((a,b)=>`${a.dueDate} ${a.dueTime}`.localeCompare(`${b.dueDate} ${b.dueTime}`));agentQueryResult('Recordatorios',agentList(rows.map(x=>`${x.title} · ${dateLabel(x.dueDate)} ${x.dueTime||''} · ${x.responsible}`),'No tenés recordatorios pendientes.'));return;
+  }
+  if(/(completa|complet[aá]|termina|termin[aá]|marca).*?(tarea|recordatorio)/.test(l)){
+    const rows=Store.list('tasks').filter(x=>x.status!=='completed');const q=l.replace(/.*?(tarea|recordatorio)\s*/,'').trim();const t=rows.find(x=>normalizeAgentText(x.title).includes(q)||q.includes(normalizeAgentText(x.title)));if(!t){agentQueryResult('Recordatorio','No encontré esa tarea.');return;}makePending('taskComplete',{id:t.id,title:t.title},[],`Marcar como completado: ${t.title}.`);return;
+  }
+  if(/(crear|cargar|agregar|registrar|anotar|poneme|guard[aá])/.test(l)&&/(recordatorio|tarea)/.test(l)){
+    const title=text.replace(/.*?(recordatorio|tarea)\s*(para)?\s*/i,'').replace(/\b(mañana|manana|hoy|urgente)\b/gi,'').replace(/\b(?:a las?)\s*[0-2]?\d:[0-5]\d\b/gi,'').trim()||'Nueva tarea';const dt=agentDateTime(text);makePending('task',{title,dueTime:dt.time,priority:agentPriority(text),responsible:agentPerson,status:'pending',repeat:'none',notes:'Creado por Agente BLUNNO'},[],`Crear recordatorio para ${agentPerson} el ${dateLabel(dt.date)}${dt.time?' a las '+dt.time:''}.`);return;
+  }
+  if(/\b(pagar|registrar pago|abonar)\b/.test(l)&&/factura|proveedor/.test(l)){agentSay('<span>Este sistema no administra pagos de facturas. La factura solamente se registra como CARGADA.</span>');return;}
+  if(/(cargar|carga|registrar|registra|agregar|agrega|anotar|anota|guardar|guarda|guardame|guardá)/.test(l)&&/factura/.test(l)){
+    const provider=agentProviderNameFromText(text)||agentFindProvider(l),amount=parseMoney(text),dt=agentDateTime(text),missing=[];if(!provider)missing.push('proveedor');if(amount===null)missing.push('importe');if(scopeBranch==='General')missing.push('sucursal concreta');
+    makePending('invoice',{provider:provider?.name||'',number:(text.match(/(?:nro|número|numero|n°|num\.?\s*factura)\s*[:#-]?\s*([A-Za-z0-9-]+)/i)||[])[1]||'',operationDate:dt.date,loadDate:now(),branch:scopeBranch==='General'?'':scopeBranch,amount:amount||0,status:'CARGADA',period:dt.date.slice(0,7),notes:'Cargada por Agente BLUNNO'},missing,`${provider?.name||'Proveedor requerido'} · ${money(amount||0)} · ${esc(scopeBranch==='General'?'sucursal pendiente':scopeBranch)} · movimiento ${dateLabel(dt.date)}.`);return;
+  }
+  if(/(cargar|carga|registrar|registra|agregar|agrega|anotar|anota|guardar|guarda|guardame|guardá)/.test(l)&&/gasto/.test(l)){
+    const amount=parseMoney(text),dt=agentDateTime(text),missing=[];if(amount===null)missing.push('importe');if(scopeBranch==='General')missing.push('sucursal concreta');const category=CONFIG.expenseCategories.find(c=>l.includes(normalizeAgentText(c)));if(!category)missing.push('categoría');const concept=text.replace(/.*?gasto\s*/i,'').replace(/\$?\s*[\d.]+(?:,\d+)?\s*(pesos|peso|ars)?/i,'').trim()||'Gasto cargado por Agente BLUNNO';makePending('expense',{date:dt.date,period:dt.date.slice(0,7),branch:scopeBranch==='General'?'':scopeBranch,category:category||'',concept,amount:amount||0,document:'',notes:'Cargado por Agente BLUNNO'},missing,`${category||'Categoría pendiente'} · ${concept} · ${money(amount||0)} · ${esc(scopeBranch)}.`);return;
+  }
+  if(/(cargar|carga|registrar|registra|agregar|agrega|anotar|anota|guardar|guarda|guardame|guardá)/.test(l)&&/inversi[oó]n/.test(l)){
+    const amount=parseMoney(text),dt=agentDateTime(text),missing=[];if(amount===null)missing.push('importe');if(scopeBranch==='General')missing.push('sucursal concreta');makePending('investment',{date:dt.date,period:dt.date.slice(0,7),branch:scopeBranch==='General'?'':scopeBranch,concept:text,amount:amount||0,document:'',notes:'Cargada por Agente BLUNNO'},missing,`Inversión · ${money(amount||0)} · ${esc(scopeBranch)}.`);return;
+  }
+  if(/(cargar|carga|registrar|registra|agregar|agrega|anotar|anota|guardar|guarda|guardame|guardá)/.test(l)&&/(ingreso|egreso|caja|resto)/.test(l)){
+    const amount=parseMoney(text),dt=agentDateTime(text),missing=[];if(amount===null)missing.push('importe');if(scopeBranch==='General')missing.push('sucursal concreta');const type=/egreso|gasto|pago/.test(l)?'expense':'income';makePending('cash',{date:dt.date,period:dt.date.slice(0,7),branch:scopeBranch==='General'?'':scopeBranch,type,concept:text,amount:amount||0,expected:amount||0,notes:'Cargado por Agente BLUNNO'},missing,`${type==='income'?'Ingreso':'Egreso'} de caja · ${money(amount||0)} · ${esc(scopeBranch)}.`);return;
+  }
+  if(/(cargar|carga|registrar|registra|agregar|agrega|anotar|anota|guardar|guarda|guardame|guardá)/.test(l)&&/horas?/.test(l)){
+    const emp=agentEmployeeFromText(text,scopeBranch),dt=agentDateTime(text),missing=[];const hourMatch=l.match(/(\d+(?:[,.]\d+)?)\s*horas?/);const hrs=hourMatch?Number(hourMatch[1].replace(',','.')):null;if(!emp)missing.push('empleado');if(hrs===null)missing.push('cantidad de horas');makePending('hours',{employee:emp?.name||'',employeeId:emp?.id||'',date:dt.date,hours:hrs||0,advance:0,merchandise:0,holiday:/feriado/.test(l)?'yes':'no',notes:'Cargadas por Agente BLUNNO'},missing,`${emp?.name||'Empleado pendiente'} · ${hrs||0} horas · ${dateLabel(dt.date)}.`);return;
+  }
+  if(/(agregar|crear|alta|nuevo|nueva)/.test(l)&&/(empleado|personal)/.test(l)){
+    const name=text.replace(/.*?(empleado|personal)\s*(nuevo|nueva|que se llama|llamado|llamada)?\s*/i,'').replace(/\s+en\s+(mendiolaza|bodereau|derqui|unquillo|general).*$/i,'').trim();const missing=[];if(!name||name.length<2)missing.push('nombre del empleado');if(scopeBranch==='General')missing.push('sucursal concreta');makePending('employee',{name:name||'',branch:scopeBranch==='General'?'':scopeBranch,role:'',hourlyRate:0,active:true},missing,`Crear empleado ${name||'(falta nombre)'} en ${scopeBranch}.`);return;
+  }
+  if(/(agregar|crear|alta|nuevo|nueva)/.test(l)&&/proveedor/.test(l)){
+    const name=text.replace(/.*?proveedor\s*(nuevo|nueva|que se llama|llamado|llamada)?\s*/i,'').trim();const missing=[];if(!name||name.length<2)missing.push('nombre del proveedor');makePending('provider',{name:name||'',active:true,master:false},missing,`Crear proveedor ${name||'(falta nombre)'}.`);return;
+  }
+  if(/(elimina|borrar|borra|manda|mand[aá]).*?(papelera|proveedor|factura|gasto|inversion|empleado|tarea)/.test(l)){
+    const p=agentProviderNameFromText(text);if(p){makePending('delete',{collection:'providers',id:p.id,label:p.name},[],`Enviar proveedor ${p.name} a la papelera.`);return;}
+    agentSay('<span>Para eliminar por voz necesito el nombre exacto del registro. No borro nada sin confirmación.</span>');return;
+  }
+  agentSay('<b>Agente BLUNNO</b><span>No ejecuté nada porque no pude interpretar la orden con seguridad. Podés decirla de otra forma; si falta un dato te lo voy a pedir antes de modificar.</span>');
+}
+async function confirmAgent(){
+  if(!pendingAgent)return;
+  const p=pendingAgent;
+  try{
+    if(p.missing?.length){agentSay(`<span>No puedo ejecutar todavía. Falta: ${p.missing.join(', ')}.</span>`);return;}
+    if(p.type==='taskComplete'){await Store.update('tasks',p.data.id,{status:'completed',completedAt:now(),completedBy:agentPerson},agentPerson,'Tarea completada por Agente BLUNNO');pendingAgent=null;refresh();agentSay('<span>✓ Recordatorio completado y auditado.</span>');return;}
+    if(p.type==='invoicePayment'){pendingAgent=null;agentSay('<span>No se registró ningún pago. Las facturas no tienen estados de pago en BLUNNO.</span>');return;}
+    if(p.type==='delete'){await Store.remove(p.data.collection,p.data.id,agentPerson,'Baja lógica confirmada por Agente BLUNNO');pendingAgent=null;refresh();agentSay('<span>✓ Registro enviado a la papelera. Se conserva la auditoría y puede restaurarse.</span>');return;}
+    if(p.type==='task'){await Store.add('tasks',p.data,agentPerson,'Creación de recordatorio por Agente BLUNNO');pendingAgent=null;refresh();agentSay('<span>✓ Recordatorio creado y auditado.</span>');return;}
+    const collection={provider:'providers',invoice:'invoices',investment:'investments',expense:'expenses',cash:'cash',hours:'hours',employee:'employees'}[p.type];
+    if(!collection)throw new Error('Acción no disponible.');
+    const data={...p.data};
+    if(['invoice','expense','investment','cash'].includes(p.type)&&data.branch==='')throw new Error('Necesito una sucursal concreta para guardar este movimiento.');
+    if(p.type==='invoice'){data.period=String(data.operationDate||today()).slice(0,7);data.loadDate=data.loadDate||now();data.status='CARGADA'; delete data.dueDate; delete data.paidAmount;}
+    if(p.type==='hours'){
+      const emp=Store.get('employees',data.employeeId)||Store.list('employees').find(x=>normalizeAgentText(x.name)===normalizeAgentText(data.employee));if(!emp)throw new Error('No se encontró el empleado.');
+      data.employeeId=emp.id;data.employee=emp.name;data.branch=emp.branch;data.period=String(data.date).slice(0,7);data.salaryCost=Number(data.hours||0)*Number(emp.hourlyRate||0);
+    }
+    if(p.type==='employee')data.createdByAgent=true;
+    const row=await Store.add(collection,data,agentPerson,'Acción confirmada por Agente BLUNNO');pendingAgent=null;refresh();setTimeout(()=>{agentSay(`<b>✓ Acción ejecutada correctamente</b><span>${esc(collection)} quedó guardado con responsable ${esc(agentPerson)}, fecha/hora y auditoría completa.</span><button class="secondary-button" data-undo-agent="${row.id}" data-undo-collection="${collection}">↶ Deshacer esta acción</button>`);const box=$('#agentMessages');box?.lastElementChild?.querySelector('[data-undo-agent]')?.addEventListener('click',()=>undoAgent(collection,row.id));},30);
+  }catch(e){agentSay(`<span class="text-red">No se pudo ejecutar: ${esc(e.message||'Error inesperado')}</span>`)}
+}
+async function undoAgent(collection,id){try{await Store.remove(collection,id,agentPerson||currentOperator,'Deshacer acción del Agente BLUNNO');toast('Acción revertida; la auditoría original se conserva.');refresh();setTimeout(()=>agentSay('<span>↶ La acción fue deshecha. El registro original y la reversión siguen en auditoría.</span>'),30)}catch(e){toast(e.message,false)}}
+let speechRecognition=null;
+function startSpeech(){
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  if(!SR){toast('Este navegador no ofrece reconocimiento de voz. Usá Chrome o Edge.',false);return;}
+  if(speechRecognition){try{speechRecognition.stop()}catch(e){}speechRecognition=null;return;}
+  const r=new SR();speechRecognition=r;r.lang='es-AR';r.continuous=false;r.interimResults=true;r.maxAlternatives=5;
+  const btn=$('#agentMic');if(btn){btn.textContent='⏹';btn.title='Detener escucha';btn.classList.add('recording')}
+  let finalText='';
+  r.onresult=e=>{let interim='';for(let i=e.resultIndex;i<e.results.length;i++){const part=e.results[i][0]?.transcript||'';if(e.results[i].isFinal)finalText+=part+' ';else interim+=part}const input=$('#agentInput');if(input)input.value=(finalText+interim).trim()};
+  r.onend=()=>{if(btn){btn.textContent='🎙';btn.title='Dictar';btn.classList.remove('recording')}speechRecognition=null;const input=$('#agentInput');const t=input?.value.trim();if(t)agentText()};
+  r.onerror=e=>{if(btn){btn.textContent='🎙';btn.title='Dictar';btn.classList.remove('recording')}speechRecognition=null;if(e.error!=='aborted'&&e.error!=='no-speech')toast(`No se pudo interpretar el audio (${e.error}).`,false)};
+  try{r.start()}catch(e){speechRecognition=null;if(btn){btn.textContent='🎙';btn.classList.remove('recording')}toast('No se pudo iniciar el micrófono. Permití el acceso al micrófono.',false)}
+}
+
+function globalWire(){
+ document.querySelectorAll('.nav-item').forEach(b=>b.onclick=()=>{navigate(b.dataset.view);closeMobileMenu();});
+ const mobileBtn=$('#mobileMenuBtn');
+ const overlay=$('#mobileOverlay');
+ function openMobileMenu(){document.body.classList.add('mobile-nav-open');overlay?.classList.remove('hidden');}
+ window.__blunnoOpenMobileMenu=openMobileMenu;
+ window.__blunnoCloseMobileMenu=closeMobileMenu;
+ function closeMobileMenu(){document.body.classList.remove('mobile-nav-open');overlay?.classList.add('hidden');}
+ mobileBtn?.addEventListener('click',openMobileMenu);
+ overlay?.addEventListener('click',closeMobileMenu);
+
+ $('#periodSelector').onclick=openPeriodModal;
+ $('#branchSelector').onchange=e=>{const next=e.target.value;if(next===branch)return;if(confirm(`Estás cambiando el contexto de trabajo a ${String(next).toUpperCase()}.\nLos datos no se modificarán. Solamente cambiará la información que estás visualizando.\n\n¿Querés cambiar el contexto?`))setBranch(next);else e.target.value=branch;};
+ $('#operatorSelector').onchange=e=>setOperator(e.target.value);
+ $('#newRecordBtn').onclick=()=>{const map={dashboard:'income',income:'income',cash:'cash',providers:'invoice',invoices:'invoice',expenses:'expense',investments:'investment',people:'employee',hours:'hours',tasks:'task'};if(map[view])openModal(map[view]);else toast('Elegí un sector para crear un movimiento.',false)};
+ $('#searchBtn').onclick=openSearch;
+
+ $('#closeModalBtn')?.addEventListener('click',closeModal);
+ $('#recordForm').addEventListener('submit',saveRecord);
+ document.querySelectorAll('[data-close-modal]').forEach(b=>b.onclick=closeModal);
+ document.querySelectorAll('[data-close-period-modal]').forEach(b=>b.onclick=()=>$('#periodModal').classList.add('hidden'));
+ document.querySelectorAll('[data-close-detail]').forEach(b=>b.onclick=()=>$('#detailModal').classList.add('hidden'));
+ document.querySelectorAll('[data-close-liquidation]').forEach(b=>b.onclick=()=>$('#liquidationModal').classList.add('hidden'));
+ document.querySelectorAll('[data-close-reminder]').forEach(b=>b.onclick=()=>$('#reminderModal').classList.add('hidden'));
+}
+
+function openSearch(){const m=$('#searchModal');m.classList.remove('hidden');const input=$('#searchInput');input.value='';input.focus();const draw=()=>{const q=input.value.toLowerCase().trim();if(!q){$('#searchResults').innerHTML='<div class="empty-block">Buscá proveedores, facturas, ingresos, gastos, inversiones, empleados, documentos, cierres o auditoría.</div>';return}const sources=[
+  ...Store.list('providers').map(x=>({...x,_type:'Proveedor',_label:x.name,_view:'providers'})),
+  ...Store.list('employees').map(x=>({...x,_type:'Empleado',_label:x.name,_view:'people'})),
+  ...Store.list('invoices').map(x=>({...x,_type:'Factura',_label:`${x.provider} · ${x.number||'sin número'} · ${money(x.amount)}`,_view:'invoices'})),
+  ...Store.list('incomes').map(x=>({...x,_type:'Ingreso',_label:`${x.concept||'Ingreso'} · ${money(x.amount)}`,_view:'income'})),
+  ...Store.list('expenses').map(x=>({...x,_type:'Gasto',_label:`${x.category} · ${x.concept||''} · ${money(x.amount)}`,_view:'expenses'})),
+  ...Store.list('investments').map(x=>({...x,_type:'Inversión',_label:`${x.concept||'Inversión'} · ${money(x.amount)}`,_view:'investments'})),
+  ...Store.list('files').map(x=>({...x,_type:'Documento',_label:x.name,_view:'files'})),
+  ...Store.list('closures').map(x=>({...x,_type:'Cierre',_label:`Cierre ${periodLabel(x.period)} · ${x.branch} · V${x.version}`,_view:'close'})),
+  ...Store.db.audit.map(x=>({...x,_type:'Auditoría',_label:`${x.action} · ${x.collection} · ${x.responsible} · ${dateTimeLabel(x.at)}`,_view:'history'}))
+ ];const found=sources.filter(x=>JSON.stringify(x).toLowerCase().includes(q)).slice(0,40);$('#searchResults').innerHTML=found.map(x=>`<button class="search-result" data-search-view="${esc(x._view)}"><span class="search-result-type">${esc(x._type)}</span><b>${esc(x._label)}</b></button>`).join('')||'<div class="empty-block">No encontramos coincidencias en el contexto actual.</div>';document.querySelectorAll('[data-search-view]').forEach(b=>b.onclick=()=>{navigate(b.dataset.searchView);m.classList.add('hidden')});};input.oninput=draw;draw();}
+
+async function init(){
+ try{
+   currentOperator=""; agentPerson=""; localStorage.removeItem("blunno-operator"); localStorage.removeItem("blunno-agent-person"); branch="General"; window.__blunnoBranch=branch; connection();
+   await Store.sync(); globalWire(); refresh(); window.__BLUNNO_BOOTED__=true; window.__BLUNNO_RUNTIME__={version:"2026.09.25.17",entry:"blunno-control.js",mode:Store.mode};
+ }catch(e){
+   const box=document.getElementById('bootError'); if(box){box.hidden=false;const out=box.querySelector('[data-boot-message]');if(out)out.textContent=e?.message||String(e);}
+ }
+}
+if(window.__BLUNNO_TEST_MODE__) window.__BLUNNO_TEST__={
+  Store, navigate, refresh, setOperator, setBranch,
+  setPeriod(value){ if(!/^\d{4}-\d{2}$/.test(value)) throw new Error('Período inválido.'); period=value; Store.setPeriod(value); refresh(); },
+  context:()=>({view,period,branch,currentOperator,agentPerson}),
+  generateAndShowViewPDF, generateInvoicePDF, generateClosurePDF, generateProviderHistoryPDF,
+  createBackupZip, readZipEntries, restoreBackupFile,
+  openLiquidation, showProviderHistory, analyzeSheet, confirmExcelImport, exportExcel,
+  printStoredFile, downloadStoredFile, saveHourCell, agentText, confirmAgent, rememberAgentPerson, undoAgent,
+  pendingAgent:()=>pendingAgent
+};
+
+init();
+
+__BLUNNO_MODULES.web = {  };
+})();
