@@ -1,0 +1,4 @@
+BLUNNO CONTROL EMPRESARIAL V8 FINAL
+Build: 2026.09.25.8
+Arquitectura de carga: bootstrap-v8.js -> app-v8.js -> config-v8/store-v8/firebase-v8/views-v8
+Objetivo: evitar que una versión anterior de app.js quede cargada por caché en GitHub Pages.

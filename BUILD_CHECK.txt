@@ -1,0 +1,3 @@
+BLUNNO V8 - BUILD CHECK
+
+All JavaScript modules are checked with Node.js syntax validation before packaging.
