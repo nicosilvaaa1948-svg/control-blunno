@@ -1,0 +1,24 @@
+BLUNNO CONTROL EMPRESARIAL — V6
+Fecha: 2026-09-25
+
+Cambios principales:
+- Responsable obligatorio y sin responsable automático.
+- Responsabilidad se limpia después de cada modificación.
+- Cambio de sucursal con confirmación.
+- Sucursales aisladas; General consolida.
+- Empleados iniciales asignados únicamente a Bodereau.
+- Limpieza de datos de prueba mediante nueva clave local v10.
+- Recordatorios: borrar únicamente realizados.
+- Historial: selección múltiple, seleccionar todo y papelera.
+- Papelera: restaurar, eliminar definitivamente, vaciar papelera.
+- Selección múltiple para movimientos de los sectores principales.
+- PDFs completos, paginados y archivados para re-descarga.
+- Cierres con responsable, fecha/hora, versión, reapertura y PDF robusto.
+- Historial de cierre descargable por versión.
+- Archivos con ver/descargar y eliminación a papelera.
+- Facturas separadas por movimiento y por sucursal, con historial por proveedor.
+- PDF de historial de proveedor.
+- Caja con control y PDF detallado.
+- Horas: F = franco, H = feriado; feriados resaltados.
+- Navegación atrás/adelante.
+- Agente BLUNNO se deja para la última etapa, como solicitado.

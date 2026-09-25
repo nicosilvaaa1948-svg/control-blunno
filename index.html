@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#0757c8"><title>BLUNNO · Control Empresarial</title>
+<link rel="icon" href="logo.jpeg"><link rel="stylesheet" href="styles.css">
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+</head>
+<body>
+<div class="app-shell">
+<aside class="sidebar">
+  <div class="brand"><img src="logo.jpeg" alt="Blunno"><div><b>BLUNNO</b><span>CONTROL EMPRESARIAL</span></div></div>
+  <div class="period-card"><span>PERÍODO ACTIVO</span><button id="periodSelector" class="period-selector">Septiembre 2026</button><div><i id="periodDot"></i><strong id="periodState">ABIERTO</strong></div></div>
+  <nav id="mainNav">
+    <button class="nav-item active" data-view="dashboard">⌂ <span>Inicio</span></button>
+    <button class="nav-item" data-view="cash">▣ <span>Caja diaria</span></button>
+    <button class="nav-item" data-view="providers">◫ <span>Proveedores</span></button>
+    <button class="nav-item" data-view="invoices">▤ <span>Facturas</span></button>
+    <button class="nav-item" data-view="expenses">▥ <span>Gastos</span></button>
+    <button class="nav-item" data-view="investments">◈ <span>Inversiones</span></button>
+    <button class="nav-item" data-view="people">♙ <span>Personal</span></button>
+    <button class="nav-item" data-view="hours">◷ <span>Horas mensuales</span></button>
+    <button class="nav-item" data-view="results">↗ <span>Resultados</span></button>
+    <button class="nav-item" data-view="compare">⇄ <span>Comparativas</span></button>
+    <button class="nav-item" data-view="tasks">✓ <span>Recordatorios</span></button>
+    <button class="nav-item" data-view="agent">✦ <span>Agente BLUNNO</span></button>
+    <button class="nav-item" data-view="close">▣ <span>Cierre mensual</span></button>
+    <button class="nav-item" data-view="files">▱ <span>Archivos</span></button>
+    <button class="nav-item" data-view="history">↺ <span>Historial</span></button>
+    <button class="nav-item" data-view="trash">♻ <span>Papelera</span></button>
+    <button class="nav-item" data-view="import">⇩ <span>Excel / Backup</span></button>
+  </nav>
+  <div class="side-status"><span class="status-line"><i id="connectionDot"></i><b id="connectionText">Modo local</b></span><small id="userText">Datos locales</small></div>
+</aside>
+<main class="main">
+<header class="topbar">
+  <div><div class="eyebrow">DISTRIBUIDORA BLUNNO</div><h1 id="pageTitle">Panel general</h1></div>
+  <div class="top-actions">
+    <select id="branchSelector" class="top-select"><option>Mendiolaza</option><option>Bodereau</option><option>Derqui</option><option>Unquillo</option><option selected>General</option></select>
+    <select id="operatorSelector" class="top-select"><option value="">Responsable</option><option>Agus</option><option>Nico</option><option>Luz</option><option>Flor</option></select>
+    <button id="backBtn" class="icon-button back-button" title="Volver">←</button><button id="forwardBtn" class="icon-button back-button" title="Avanzar">→</button><button id="searchBtn" class="icon-button" title="Buscar">⌕</button><button id="newRecordBtn" class="primary-button">＋ Nuevo movimiento</button>
+  </div>
+</header>
+<div id="content"></div>
+</main></div>
+
+<div id="toast" class="toast"></div>
+
+<div id="modal" class="modal hidden"><div class="modal-card"><div class="modal-header"><div><small id="modalKicker"></small><h2 id="modalTitle"></h2></div><button class="close-button" data-close-modal>×</button></div><form id="recordForm"><div id="formFields" class="form-grid"></div><label class="field required-field">Responsable<select id="recordResponsible" required><option value="">Elegir responsable…</option><option>Agus</option><option>Nico</option><option>Luz</option><option>Flor</option></select></label><div class="modal-footer"><button type="button" class="secondary-button" data-close-modal>Cancelar</button><button type="submit" class="primary-button">Guardar y auditar</button></div></form></div></div>
+
+<div id="periodModal" class="modal hidden"><div class="modal-card small-card"><div class="modal-header"><div><small>PERÍODOS</small><h2>Elegir mes</h2></div><button class="close-button" data-close-period-modal>×</button></div><div id="periodBody"></div></div></div>
+<div id="detailModal" class="modal hidden"><div class="modal-card"><div class="modal-header"><div><small>DETALLE</small><h2 id="detailTitle">Detalle</h2></div><button class="close-button" data-close-detail>×</button></div><div id="detailBody"></div></div></div>
+<div id="liquidationModal" class="modal hidden"><div class="modal-card"><div class="modal-header"><div><small>LIQUIDACIÓN</small><h2>Totalizar sueldo</h2></div><button class="close-button" data-close-liquidation>×</button></div><div id="liquidationBody"></div></div></div>
+<div id="closeConfirmModal" class="modal hidden"><div class="modal-card small-card"><div class="modal-header"><div><small>CONTROL PREVIO</small><h2>Confirmar cierre</h2></div><button class="close-button" data-close-close-confirm>×</button></div><div id="closeConfirmBody"></div></div></div>
+<div id="searchModal" class="modal hidden"><div class="modal-card search-card"><div class="modal-header"><div><small>BÚSQUEDA GLOBAL</small><h2>Buscar en Blunno</h2></div><button class="close-button" onclick="this.closest('.modal').classList.add('hidden')">×</button></div><input id="searchInput" class="search-input" placeholder="Proveedor, factura, empleado, gasto, concepto…"><div id="searchResults" class="search-results"></div></div></div>
+<div id="pdfSuccessModal" class="modal hidden"><div class="modal-card small-card success-modal-card"><div class="success-mark">✓</div><div class="modal-header centered"><div><small id="pdfSuccessKicker">DOCUMENTO GENERADO</small><h2 id="pdfSuccessTitle">Proceso exitoso</h2></div><button class="close-button" data-close-pdf-success>×</button></div><p id="pdfSuccessDescription" class="success-description"></p><div id="pdfSuccessMeta" class="success-meta"></div><div class="modal-footer"><button class="secondary-button" data-close-pdf-success>Cerrar</button><button class="primary-button" id="pdfSuccessDownload">Descargar PDF</button></div></div></div>
+<div id="reminderModal" class="reminder-modal hidden"><button class="reminder-close" data-close-reminder>×</button><span id="reminderTitle">🔔 TENÉS UN RECORDATORIO</span><b id="reminderText"></b><small id="reminderMeta"></small><button id="reminderDone" class="primary-button">✓ MARCAR COMO REALIZADA</button></div>
+<script type="module" src="app.js?v=20260925.2"></script>
+</body></html>
