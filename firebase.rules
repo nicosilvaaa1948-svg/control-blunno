@@ -1,0 +1,48 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() { return request.auth != null; }
+    function elevated() {
+      return signedIn() && (request.auth.token.role == 'admin' || request.auth.token.role == 'general');
+    }
+    function branchAllowed(branchId) {
+      return elevated()
+        || (signedIn() && request.auth.token.branchId == branchId)
+        || (signedIn() && request.auth.token.branchIds != null && request.auth.token.branchIds[branchId] == true);
+    }
+    function globalDocRead() {
+      return signedIn();
+    }
+    function canRead(data) {
+      return elevated() || data.branchId == null || branchAllowed(data.branchId);
+    }
+    function canCreate(data) {
+      return elevated() || data.branchId == null || branchAllowed(data.branchId);
+    }
+    function canUpdate(oldData, newData) {
+      return elevated()
+        || (oldData.branchId == null && newData.branchId == null)
+        || (oldData.branchId == newData.branchId && branchAllowed(newData.branchId));
+    }
+
+    match /audit/{id} {
+      allow read: if canRead(resource.data);
+      allow create: if canCreate(request.resource.data);
+      allow update, delete: if false;
+    }
+
+    match /files/{id} {
+      allow read: if canRead(resource.data);
+      allow create: if canCreate(request.resource.data);
+      allow update: if canUpdate(resource.data, request.resource.data);
+      allow delete: if false;
+    }
+
+    match /{collection}/{id} {
+      allow read: if canRead(resource.data);
+      allow create: if canCreate(request.resource.data);
+      allow update: if canUpdate(resource.data, request.resource.data);
+      allow delete: if false;
+    }
+  }
+}
