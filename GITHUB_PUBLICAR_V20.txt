@@ -1,0 +1,7 @@
+BLUNNO CONTROL EMPRESARIAL · V21 FINAL
+
+1. Reemplazá el contenido anterior del repositorio por el contenido de esta carpeta.
+2. index.html debe quedar en la raíz del repositorio.
+3. En GitHub: Settings > Pages > Deploy from branch > main > / (root).
+4. No mezcles archivos de V11/V12/V18/V19 con esta versión.
+5. Firebase queda opcional; sin credenciales la web trabaja en modo local.

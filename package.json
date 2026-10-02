@@ -1,0 +1,10 @@
+{
+  "name": "blunno-control-empresarial-web",
+  "private": true,
+  "version": "21.0.0",
+  "description": "Web interna de gestión empresarial para Distribuidora Blunno · V21 FINAL",
+  "type": "module",
+  "scripts": {
+    "test": "node tests/static-check.mjs && node tests/core.test.mjs && node tests/pdf.test.mjs && node tests/pdf-suite.test.mjs && node tests/app-smoke.test.mjs && node tests/v21-regressions.test.mjs"
+  }
+}
