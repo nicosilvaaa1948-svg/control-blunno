@@ -1,0 +1,16 @@
+BLUNNO CONTROL EMPRESARIAL · V22 CORRECCIONES Y MEJORAS
+Fecha: 2026-10-05
+Base: V21 FINAL COMPLETO
+
+Cambios principales:
+- Excel / Backup: análisis completo hoja por hoja, exportación Excel ordenada, PDF e impresión del resumen.
+- PDF / impresión: formato administrativo y documentos individuales conservados.
+- Caja diaria: Ingresos + Gastos de caja + Control diario; se elimina el tercer cuadro independiente de Pagos y se conserva la fila PAGOS dentro del control diario.
+- Inicio / Resultado: Ingresos pasan a tener como única fuente operativa Caja diaria, separados por sucursal y consolidados únicamente en General.
+- Cierre mensual: errores visibles en rojo, acceso directo a Solucionar / Revisar y confirmación visual de guardado.
+- Horas mensuales: feriados con calendario por mes, horas normales + feriado + extras y liquidación editable antes de totalizar.
+- Proveedores: acceso y disponibilidad por sucursal, historial y facturación separados por perfil.
+- Facturas: selector visible de proveedores con búsqueda, selección obligatoria y validación por sucursal.
+- Períodos: selector visual 2026-2030 + entrada de mes/año hasta 2099, respetando abiertos/cerrados y calendario real.
+- Agente BLUNNO eliminado del código y de las colecciones locales.
+- Pruebas V20 + V22 ejecutadas correctamente.
