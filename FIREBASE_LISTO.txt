@@ -1,0 +1,22 @@
+BLUNNO V30 · FIREBASE LISTO
+
+Proyecto: distribuidora-blunno
+
+La configuración web de Firebase ya está incorporada a:
+- config.js
+- blunno-control.js
+- index.html (runtime real)
+
+Servicios preparados:
+- Authentication: Email/Password
+- Cloud Firestore
+- Firebase Storage
+- Firebase Analytics
+
+Para publicar:
+1. Subir todo el contenido de esta carpeta a tu web/GitHub Pages.
+2. Entrar con un usuario existente de Firebase Authentication.
+3. Mantener tus reglas de Firestore/Storage actuales. El proyecto incluye firebase.rules como referencia.
+4. Las cuentas por sucursal deben tener los claims que ya esperan las reglas: branchId / branchIds. General/Admin usa role=general/admin.
+
+Nota: la web estática carga los módulos Firebase 12.3.0 desde gstatic.com; no necesita node_modules para funcionar en GitHub Pages.
