@@ -1,0 +1,44 @@
+BLUNNO V31 · PERFILES FIREBASE
+
+CUENTAS DE ACCESO TOTAL (ROL GENERAL)
+- flo1@gmail.com
+- nico1@gmail.com
+- luz1@gmail.com
+- agus1@gmail.com
+
+Estas cuatro cuentas pueden usar todos los sectores y todas las acciones de BLUNNO.
+Pueden trabajar simultáneamente en la web con sesiones Firebase independientes.
+
+CUENTA 5 · HORAS
+- horas@gmail.com
+
+Permisos:
+- Personal: puede ver empleados y crear empleados nuevos.
+- Horas mensuales: puede ver y cargar/corregir horas manualmente.
+- Puede seleccionar sucursal y período para consultar/cargar. No puede iniciar nuevos meses ni modificar meses cerrados.
+- Puede ver liquidaciones existentes.
+
+Bloqueado para horas@gmail.com:
+- totalizar sueldos
+- crear/modificar/eliminar liquidaciones
+- modificar/eliminar empleados
+- adelantos y mercadería
+- feriados
+- PDFs/exportaciones/backups
+- Caja, Ingresos, Gastos, Proveedores, Facturas, Inversiones, Resultados,
+  Comparar, Cierre, Tareas, Historial, Papelera, Archivos e Importación.
+
+Cualquier intento de entrar a un sector o acción no autorizada muestra “No tenés permiso”.
+Las reglas de Firestore también bloquean las operaciones no autorizadas en servidor.
+
+IMPORTANTE
+Las contraseñas NO se guardan en este archivo ni en el código. Cada una de las 5 cuentas debe
+existir en Firebase Authentication con Email/Password. Los correos de arriba determinan el rol.
+No se aceptan otras cuentas ni claims heredados: una cuenta fuera de estas cinco queda sin acceso.
+
+PUBLICACIÓN
+1. Firebase Console → Authentication → Users: crear las 5 cuentas con sus contraseñas.
+2. Firebase Console / CLI: publicar firebase.rules y storage.rules.
+3. Publicar la carpeta web completa.
+
+NO cambiar las reglas a “allow read, write: if true”.

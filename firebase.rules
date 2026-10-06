@@ -1,0 +1,48 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() { return request.auth != null; }
+    function generalEmail() {
+      return signedIn() && request.auth.token.email != null && (
+        request.auth.token.email == 'flo1@gmail.com' ||
+        request.auth.token.email == 'nico1@gmail.com' ||
+        request.auth.token.email == 'luz1@gmail.com' ||
+        request.auth.token.email == 'agus1@gmail.com'
+      );
+    }
+    function hoursOnlyEmail() {
+      return signedIn() && request.auth.token.email == 'horas@gmail.com';
+    }
+
+    match /periods/{id} {
+      allow read: if generalEmail() || hoursOnlyEmail();
+      allow create, update, delete: if generalEmail();
+    }
+
+    match /employees/{id} {
+      allow read: if generalEmail() || hoursOnlyEmail();
+      allow create: if generalEmail() || hoursOnlyEmail();
+      allow update, delete: if generalEmail();
+    }
+
+    match /hours/{id} {
+      allow read: if generalEmail() || hoursOnlyEmail();
+      allow create, update: if generalEmail() || hoursOnlyEmail();
+      allow delete: if generalEmail();
+    }
+
+    match /liquidations/{id} {
+      allow read: if generalEmail() || hoursOnlyEmail();
+      allow create, update, delete: if generalEmail();
+    }
+
+    match /audit/{id} {
+      allow read, create, update, delete: if generalEmail();
+      allow create: if hoursOnlyEmail();
+    }
+
+    match /{collection}/{id} {
+      allow read, create, update, delete: if generalEmail();
+    }
+  }
+}
