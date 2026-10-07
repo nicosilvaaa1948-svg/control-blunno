@@ -1,0 +1,2 @@
+BLUNNO V28.0.8
+Firebase central + Auth anónima invisible + tiempo real + PDFs locales
