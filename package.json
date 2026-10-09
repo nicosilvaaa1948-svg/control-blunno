@@ -1,0 +1,10 @@
+{
+  "name": "blunno-control-empresarial-web",
+  "private": true,
+  "version": "30.0.1",
+  "description": "BLUNNO Control Empresarial · períodos globales, valores estimados y cierre histórico auditado",
+  "type": "module",
+  "scripts": {
+    "test": "node tests/v28-startup-exports-regression.test.mjs && node tests/v28-critical-regressions.test.mjs && node tests/v28-personal-regressions.test.mjs && node tests/v28-provider-reset-regression.test.mjs && node tests/v28-firebase-regression.test.mjs && node tests/v28-cash-tasks-regression.test.mjs && node tests/v28-estimates-regressions.test.mjs && node tests/v28-ui-restoration-regression.test.mjs && node tests/v30-critical-fixes.test.mjs && node tests/v30-final-detail-fixes.test.mjs"
+  }
+}
