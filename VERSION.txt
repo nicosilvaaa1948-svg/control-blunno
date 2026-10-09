@@ -1,0 +1,4 @@
+BLUNNO V30 DEFINITIVA
+Base restaurada: BLUNNO V28.2.5 completo
+Correcciones: Caja Diaria separada, 2 matrices, Gastos por categoría, cierre sin requisito de Caja Diaria, selector desde 2026.
+Build: 2026.10.09.30
