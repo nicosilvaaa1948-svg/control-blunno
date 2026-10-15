@@ -1,0 +1,18 @@
+BLUNNO CONTROL EMPRESARIAL · V16 ESTABLE WEB
+
+PARA PUBLICAR
+1. Descomprimí este ZIP.
+2. Entrá a la carpeta BLUNNO_CONTROL_EMPRESARIAL_FINAL_WEB.
+3. Subí TODO su contenido al repositorio de GitHub, reemplazando la versión anterior.
+4. index.html tiene que quedar directamente en la raíz del repositorio.
+5. Esta versión arranca desde el código embebido en index.html; no depende de web.js, app.js ni de ningún runtime anterior.
+6. Conservá blunno-control.js, store.js, views.js, config.js, firebase.js, pdf/, functions/, tests/ y docs/ porque forman parte del proyecto fuente.
+7. GitHub Pages: Settings → Pages → Deploy from branch → main → /(root).
+8. Después de publicar, recargá con Ctrl+Shift+R.
+
+IMPORTANTE
+- Si el repositorio ya contiene archivos de versiones V11/V12/V13/V14, reemplazá el contenido del proyecto por esta versión final para evitar restos antiguos.
+- Firebase no está conectado hasta configurar credenciales reales.
+- El responsable no se selecciona automáticamente.
+- General es consolidado y no modifica registros de sucursal.
+- Caja diaria queda fuera del Resultado.
