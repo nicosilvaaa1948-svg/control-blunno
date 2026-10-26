@@ -1,0 +1,20 @@
+BLUNNO CONTROL EMPRESARIAL · V17 FINAL WEB
+
+Esta carpeta es la versión final para publicar en GitHub Pages.
+
+1. Descomprimí el ZIP.
+2. Abrí tu repositorio control-blunno en GitHub.
+3. Add file → Upload files.
+4. Arrastrá TODO el contenido de esta carpeta al área de subida.
+5. Confirmá el commit.
+6. Settings → Pages → Deploy from branch → main → /(root).
+7. Esperá el deployment.
+8. Abrí la web y hacé Ctrl+Shift+R.
+
+IMPORTANTE:
+- index.html queda en la raíz del proyecto.
+- Esta versión NO depende de web.js, app.js ni de módulos JS dinámicos para iniciar.
+- bootstrap.js se conserva como archivo fuente, pero el arranque de producción está embebido en index.html.
+- No usa manifest ni service worker.
+- Firebase queda en modo local hasta configurar credenciales reales.
+- No cargues datos ficticios.

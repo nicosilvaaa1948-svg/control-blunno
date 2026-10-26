@@ -1,0 +1,11 @@
+{
+  "name": "blunno-control-empresarial-web",
+  "private": true,
+  "version": "30.1.3",
+  "description": "BLUNNO Control Empresarial · V30.1.3 · optimización de experiencia móvil",
+  "type": "module",
+  "scripts": {
+    "test": "node tests/v30-1-3-mobile-ux.test.mjs",
+    "test:mobile": "node tests/v30-1-3-mobile-ux.test.mjs"
+  }
+}
