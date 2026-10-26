@@ -1,5 +1,0 @@
-BLUNNO V30.1 · CORREGIDA
-Base: BLUNNO_V30_1_AJUSTES_FINALES.zip
-Correcciones puntuales: carga de facturas en meses anteriores; edición de facturas; relación estable factura-proveedor al cambiar el nombre.
-No se modificaron reglas de Firebase ni la estructura funcional no relacionada.
-Build: 2026.10.15.01
