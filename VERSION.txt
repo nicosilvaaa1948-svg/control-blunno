@@ -1,0 +1,11 @@
+BLUNNO V30.1.6 · ALMACENAMIENTO DURADERO
+Build: 2026.10.29.35
+- IndexedDB pasa a ser el almacenamiento principal del estado completo. localStorage queda reservado a preferencias pequeñas; ya no se escribe el estado entero en una sola clave de 5 MB.
+- La cola de operaciones pendientes de Firebase se guarda en IndexedDB, se migra desde la clave antigua y deja de truncarse silenciosamente a 1000 operaciones.
+- Los documentos se suben a Firebase Storage cuando el bucket y las reglas están habilitados. Si no están disponibles, se conservan en un almacén local IndexedDB separado; nunca se incrustan nuevos PDF/Excel como Base64 en el estado o auditoría.
+- Los archivos de nube reciben nombres únicos para conservar versiones; su ficha se sincroniza con Firestore. Los archivos que solo existen localmente siguen disponibles en la misma computadora y no se anuncian como remotos.
+- Se intenta solicitar almacenamiento persistente al navegador y se informa uso/cuota cuando la API está disponible.
+- Se conservan colecciones, auditoría, papelera y períodos históricos; no se aplican purgas de meses cerrados ni de movimientos financieros para ahorrar espacio.
+Importante: Storage requiere activación del producto y reglas en Firebase Console. Si no está disponible, BLUNNO usa IndexedDB local sin interrumpir el resto de la aplicación. El almacenamiento persistente del navegador no reemplaza un backup externo.
+- El backup ZIP incluye documentos activos y de Papelera cuando sus binarios son recuperables; informa los binarios faltantes y conserva los eliminados al restaurarlos.
+- El panel distingue documentos locales y copias locales adicionales; para que los adjuntos dejen de depender de esta computadora, Cloud Storage debe estar habilitado y autorizado en Firebase.

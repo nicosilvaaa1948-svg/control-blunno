@@ -1,0 +1,16 @@
+BLUNNO CONTROL EMPRESARIAL · PUBLICAR TODO JUNTO
+
+Para no subir archivos uno por uno:
+
+1. Descargá el ZIP y descomprimilo.
+2. Abrí GitHub Desktop y tu repositorio control-blunno.
+3. Elegí Repository → Show in Explorer.
+4. Dentro de esa carpeta del repositorio, reemplazá los archivos/carpetas del proyecto por TODO el contenido de esta carpeta.
+5. NO borres la carpeta .git del repositorio local si existe.
+6. Volvé a GitHub Desktop, escribí “BLUNNO V16 estable” y hacé Commit to main.
+7. Hacé Push origin.
+8. Esperá la publicación de GitHub Pages.
+9. Abrí https://nicosilvaa1948-svg.github.io/control-blunno/
+10. Presioná Ctrl+Shift+R una vez para limpiar caché.
+
+La versión final no depende de web.js ni app.js para arrancar y no usa PWA/service worker.
