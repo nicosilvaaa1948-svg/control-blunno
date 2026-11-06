@@ -1,0 +1,4 @@
+BLUNNO V30.1.19 · SELECTOR DE PROVEEDORES Y EDICIÓN DE FACTURAS REPARADOS
+Build: 2026.11.06.48
+Fecha: 2026-11-06
+Base: V30.1.17 + correcciones móviles de selector y edición
