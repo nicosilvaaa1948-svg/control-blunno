@@ -1,0 +1,4 @@
+BLUNNO V31.0.1 · FACTURAS: EDITAR + SELECTOR DE PROVEEDORES
+Build: 2026.11.09.55
+Fecha: 2026-11-09
+Base: control-blunno-main(7).zip · corrección puntual de Facturas

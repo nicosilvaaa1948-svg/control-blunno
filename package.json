@@ -1,0 +1,11 @@
+{
+  "name": "blunno-control-empresarial-web",
+  "private": true,
+  "version": "31.0.1",
+  "description": "BLUNNO Control Empresarial · V31.0.1 reparación de edición de facturas y selector de proveedores",
+  "type": "module",
+  "scripts": {
+    "test": "node --test tests/v31-0-1-invoice-fixes.test.mjs",
+    "test:storage": "node --test tests/v31-0-1-invoice-fixes.test.mjs"
+  }
+}
