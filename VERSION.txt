@@ -1,0 +1,10 @@
+BLUNNO V31.1.2 · DETALLE DE LIQUIDACIÓN CLARO Y COMPLETO
+Build: 2026.11.10.58
+Fecha: 2026-11-10
+Base: BLUNNO V31.1.1 · mejora de presentación del detalle salarial
+
+Personal: Inicio sigue contabilizando únicamente el sueldo neto generado; no suma el sueldo neto a cobrar. La ficha y el detalle de liquidación muestran ambos importes por separado.
+Detalle de liquidación: desglose de horas normales, domingos, feriados y extras, cantidad de horas, valor pagado por hora y subtotal; luego adelantos, mercadería, saldo anterior, total descontado y neto a cobrar. PDF con el mismo detalle.
+
+Caja diaria, almacenamiento y sincronización: sin cambios respecto de V31.1.1.
+Configuración y reglas Firebase: sin cambios.
