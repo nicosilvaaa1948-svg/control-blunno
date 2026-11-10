@@ -1,0 +1,22 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    match /blunno/{allPaths=**} {
+      // La aplicación usa autenticación anónima. Esto exige una sesión Firebase,
+      // pero NO identifica al operador ni constituye control privado de usuarios.
+      // Para datos comerciales sensibles, sustituirlo por autenticación real y
+      // restringir el acceso antes de usar este archivo en producción.
+      allow read: if request.auth != null;
+      allow create, update: if request.auth != null
+        && request.resource.size < 20 * 1024 * 1024
+        && request.resource.contentType in [
+          'application/pdf',
+          'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+          'application/vnd.ms-excel',
+          'text/csv',
+          'application/octet-stream'
+        ];
+      allow delete: if request.auth != null;
+    }
+  }
+}

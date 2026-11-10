@@ -1,0 +1,11 @@
+{
+  "name": "blunno-control-empresarial-web",
+  "private": true,
+  "version": "31.1.2",
+  "description": "BLUNNO Control Empresarial · detalle claro de sueldo generado y neto a cobrar; Caja diaria sincronizada",
+  "type": "module",
+  "scripts": {
+    "test": "node --test tests/v31-1-0-salary-cash.test.mjs",
+    "test:storage": "node --test tests/v31-1-0-salary-cash.test.mjs"
+  }
+}
