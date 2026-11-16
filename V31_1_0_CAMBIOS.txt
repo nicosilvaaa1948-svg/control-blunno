@@ -1,0 +1,36 @@
+BLUNNO V31.1.1 · MEJORA DE PERSONAL + CAJA DIARIA COMPARTIDA
+Build: 2026.11.10.57
+Fecha: 10/11/2026
+Base exacta: control-blunno-main(8).zip
+
+PERSONAL Y LIQUIDACIONES
+- La liquidación calcula por separado el sueldo bruto generado y el sueldo neto a cobrar.
+- El bruto generado incluye horas normales, domingos, feriados y extras antes de descuentos.
+- El neto a cobrar conserva adelantos, mercadería y saldo negativo anterior como descuentos separados.
+- Inicio → Personal suma el bruto generado, no el neto a cobrar.
+- Cada ficha salarial muestra ambos importes y el desglose de horas y descuentos.
+- Comprobante PDF y exportación Excel muestran los dos conceptos por separado.
+- Las liquidaciones históricas siguen siendo compatibles con gross/net.
+
+CAJA DIARIA Y SINCRONIZACIÓN
+- El saldo inicial pasa de settings locales a un registro compartido en la colección remota cash.
+- Se migran los saldos iniciales locales anteriores sin borrarlos.
+- Cada celda de Caja utiliza una identidad estable por período, sucursal, fecha, tipo y concepto.
+- Antes de guardar, se consulta la última versión remota cuando hay conexión; las operaciones pendientes se superponen a los datos descargados.
+- La cola durable se confirma antes del guardado local rápido y se recupera al iniciar, incluso si no hay conexión.
+- Los reintentos de sincronización aumentan gradualmente hasta 60 segundos cuando Firebase no está disponible.
+- Las actualizaciones en vivo no redibujan Caja mientras se está escribiendo en una celda.
+- Las sucursales muestran los mismos movimientos compartidos en PC y celular; una edición sincronizada se actualiza en los demás dispositivos.
+
+PROTECCIÓN Y COMPATIBILIDAD
+- No se modificaron firebase.js, config.js, firebase.rules ni storage.rules.
+- No se eliminaron ni reemplazaron datos reales.
+- Se mantiene compatibilidad con registros históricos de liquidaciones y saldos iniciales.
+
+VALIDACIÓN LOCAL
+- 17/17 pruebas automatizadas aprobadas.
+- Sintaxis verificada en store.js, views.js, blunno-control.js y runtime integrado de index.html.
+- El ZIP se debe validar también después de publicarlo con la conexión real de Firebase; esta copia no ejecuta operaciones en el proyecto del usuario.
+
+
+Ajuste V31.1.1: al volver a cargar una celda de Caja previamente borrada, se transmite deleted=false y deletedAt=null con el mismo ID estable.

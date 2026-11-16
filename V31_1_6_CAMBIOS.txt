@@ -1,0 +1,10 @@
+BLUNNO V31.1.6 · RECORDATORIOS RECURRENTES Y EDICIÓN REFORZADOS
+Build: 2026.11.16.63
+
+- Las repeticiones diarias, semanales y mensuales atrasadas saltan a la siguiente fecha futura correspondiente.
+- Las series mensuales conservan su día de origen (por ejemplo, día 31) aunque atraviesen meses más cortos.
+- Cada serie conserva un identificador estable y evita crear dos ocurrencias con la misma fecha.
+- Se puede editar un recordatorio desde su tarjeta, tanto pendiente como completada, y desde el aviso flotante.
+- La edición actualiza el registro existente, conserva su estado y permite elegir “Sin repetición” para detener la serie.
+- Si falla temporalmente la programación de la próxima ocurrencia, la tarea actual queda correctamente marcada como realizada y el aviso explica el problema.
+- Se actualizaron las copias de módulos y runtime integrado de GitHub Pages.

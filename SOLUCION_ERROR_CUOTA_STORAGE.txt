@@ -1,0 +1,41 @@
+BLUNNO V30.1.6 — GUÍA DE ACTUALIZACIÓN SEGURA
+Build: 2026.10.29.35
+
+ANTES DE TOCAR EL SITIO
+1. Abrí la web actual de BLUNNO, entrá a Excel / Backup y descargá “Backup completo ZIP”. Elegí el ZIP, no solo el JSON, porque el ZIP puede incluir los PDF/Excel archivados.
+2. Guardá ese ZIP fuera de la carpeta de la web (por ejemplo, en Documentos y en otra copia externa).
+3. Si tenés una pestaña de BLUNNO con movimientos recientes sin guardar o con el mensaje rojo de cuota, no cierres esa pestaña antes de intentar descargar el backup. La versión antigua pudo haber fallado al persistir los últimos cambios; no se puede asegurar que todo lo visto solo en memoria ya esté guardado.
+4. No borres datos de Chrome, no uses “Borrar datos del sitio” y no elimines bases IndexedDB durante la actualización.
+
+PUBLICAR LA VERSIÓN NUEVA
+1. Descargá BLUNNO_V30_1_6_ALMACENAMIENTO_DURADERO.zip.
+2. Descomprimilo en tu PC.
+3. Entrá en la carpeta “control-blunno-main” que está dentro del ZIP.
+4. Subí el CONTENIDO de esa carpeta a la raíz del repositorio de GitHub Pages (donde está el index.html actual). No subas únicamente la carpeta como subcarpeta.
+5. Conservá primero una copia de los archivos anteriores en tu PC o en una rama/commit de GitHub.
+6. Esperá a que GitHub Pages publique; abrí la misma dirección de BLUNNO y hacé Ctrl + Shift + R.
+7. Verificá que aparezcan los períodos históricos, facturas, gastos, proveedores, cierres y auditoría. No continúes si la pantalla dice que no pudo recuperar la copia; no borres datos del sitio.
+
+QUÉ CAMBIA
+- El estado de negocio y la cola de sincronización se guardan en IndexedDB; ya no se escribe toda la base en una clave de localStorage.
+- Los movimientos, meses cerrados, cierres e historial de auditoría no se recortan para ahorrar espacio.
+- Los nuevos PDF/Excel se separan de los registros; si Cloud Storage está configurado, se suben a la nube. Los documentos locales existentes se intentan migrar automáticamente cuando la nube está disponible.
+- El panel “Estado del almacenamiento” de Excel / Backup muestra uso estimado, cola pendiente, documentos en nube y documentos que siguen solo locales.
+- Los adjuntos de Papelera se incluyen en el backup ZIP si se puede recuperar su binario; al restaurarlos se conserva su estado de eliminados.
+
+IMPORTANTE SOBRE FIREBASE / DOCUMENTOS
+La base de datos de Firestore ya configurada se conserva; este paquete no publica reglas ni cambia Firebase Console. Para que los PDF/Excel no dependan de esta computadora, Cloud Storage debe estar habilitado en el proyecto y aceptar las cargas con reglas correctas.
+
+NO DESPLIEGUES storage.rules A CIEGAS. El proyecto actual usa autenticación anónima, que no identifica de forma privada a cada operador. Las reglas deben revisarse con quien administre Firebase antes de habilitar archivos comerciales en la nube. Si Storage no está habilitado o niega acceso, BLUNNO mantiene los documentos en IndexedDB local y el panel los cuenta como “solo locales”; no los anuncia como subidos.
+
+PRUEBA POSTERIOR
+1. En Excel / Backup revisá el panel “Estado del almacenamiento”.
+2. Creá un registro de prueba pequeño con un responsable válido, guardalo, recargá la página y comprobá que siga ahí. Después podés eliminarlo de manera normal.
+3. Descargá un nuevo backup ZIP y conservá el anterior hasta confirmar que los registros y documentos se recuperan.
+4. Si aparece “operaciones pendientes de sincronización” y no baja después de restablecer la conexión, no borres datos: guardá un backup y revisá Firebase.
+
+LÍMITES HONESTOS
+IndexedDB tiene mucha más capacidad que localStorage, pero no es infinito. La persistencia solicitada al navegador no protege contra borrar los datos del sitio, pérdida del equipo o falta extrema de espacio. Para respaldo real, mantené copias ZIP externas y activá Cloud Storage con permisos adecuados.
+
+VERIFICACIONES DEL PAQUETE
+El test local “npm test” comprueba sintaxis de los módulos y scripts integrados, reglas estructurales de la persistencia, separación de binarios, recuperación de backup y diagnóstico de almacenamiento. No conecta a la instancia de Firebase del usuario ni sustituye una prueba real de restauración en producción.
