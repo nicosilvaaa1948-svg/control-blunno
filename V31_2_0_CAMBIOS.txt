@@ -1,0 +1,34 @@
+BLUNNO V31.2.0 · TEMAS, RESULTADOS Y PROTECCIÓN DE CARGAS
+Build: 2026.11.19.64
+Base: control-blunno-main (3).zip · BLUNNO V31.1.6
+
+1) TEMAS POR RESPONSABLE
+- Se incorpora el botón Claro/Oscuro en la barra superior.
+- La preferencia queda separada por responsable (Agus, Nico, Luz y Flor) en el almacenamiento del navegador.
+- Se adaptan paneles, tablas, formularios, controles, modales, Resultados, Horas y componentes estacionales al tema oscuro.
+- La decoración festiva mantiene contraste en tema claro y oscuro.
+
+2) RESULTADOS
+- Se muestra el resultado del período y margen sobre ingresos.
+- Se comparan ingresos, gastos del local, proveedores, inversiones, personal generado, egresos totales y resultado contra el mes anterior.
+- Se incluyen diferencias y variaciones porcentuales; cuando el mes anterior es cero, se indica que no hay base para calcular porcentaje.
+- Se detalla la composición de gastos y su participación porcentual.
+- Se conserva la descarga PDF y se agrega el resumen comparativo al informe.
+- Personal continúa computando el sueldo generado, no el neto a cobrar. Caja diaria permanece separada del resultado económico.
+
+3) PROTECCIÓN DE CARGAS Y EDICIÓN SIMULTÁNEA
+- Se difieren los refrescos remotos mientras cualquier campo editable del contenido o modal está en uso.
+- Se conserva y restaura el campo enfocado y el borrador si una actualización local vuelve a renderizar la vista.
+- Caja y Horas guardan el valor base al comenzar la edición; si el valor remoto cambió, se solicita confirmación antes de sobrescribirlo.
+- Al salir del campo, si hubo cambios remotos pendientes, se actualiza la vista sin interrumpir la escritura.
+
+4) HORAS MENSUALES
+- Las celdas de domingos trabajados se resaltan en verde.
+- Feriado trabajado/no trabajado y Franco conservan prioridad visual propia.
+- La leyenda explica el color verde para domingos.
+
+ALCANCE Y VALIDACIÓN
+- No se modificaron config.js, firebase.js, firebase.rules ni storage.rules.
+- No se alteraron datos, reglas de liquidación, reglas de negocio ni colecciones de Firebase.
+- La preferencia de tema se guarda localmente por responsable y por navegador/dispositivo; no se sincroniza entre dispositivos.
+- Los controles automatizados y de sintaxis son locales; no sustituyen la prueba de concurrencia con varias personas conectadas al Firebase real.

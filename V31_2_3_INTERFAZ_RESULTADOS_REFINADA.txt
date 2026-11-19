@@ -1,0 +1,10 @@
+BLUNNO V31.2.3 · 2026-11-19 · Build 2026.11.19.67
+
+Ajuste visual puntual del sector Resultados:
+- Los controles de período y comparación ahora se presentan en bloques separados, con jerarquía visual, selectores amplios y estados de foco/deshabilitado más claros.
+- Diseño adaptable para escritorio, tablet y celular; incluye contraste específico para tema oscuro.
+- Se conservaron los atributos de enlace de los controles, las opciones disponibles y toda la lógica de selección, alcance y comparación.
+- No se modificaron cálculos, datos, reglas de negocio, Firebase ni otros sectores de la aplicación.
+
+Validación local:
+- Pruebas automatizadas y comprobación sintáctica ejecutadas sobre los archivos del proyecto.

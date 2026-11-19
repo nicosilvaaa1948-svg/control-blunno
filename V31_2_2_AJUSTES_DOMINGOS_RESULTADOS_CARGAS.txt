@@ -1,0 +1,17 @@
+BLUNNO V31.2.2 · 2026-11-19 · Build 2026.11.19.66
+
+1) Horas dominicales:
+- Se refinó el borde verde en la celda completa y el contraste para tema claro/oscuro.
+- El distintivo muestra únicamente “DOMINGO” para evitar desbordes en celular; conserva el título accesible “Domingo trabajado”.
+- El indicador cambia al escribir y respeta feriados y francos.
+
+2) Resultados:
+- Se identifican explícitamente ambos alcances al comparar: mes elegido hasta el día correspondiente y mes comparador hasta el mismo día.
+- Se mantienen vista solo del mes, acumulado a hoy, mes completo y elección opcional de cualquier mes con datos.
+- La exportación PDF utiliza el mismo alcance y período comparador.
+
+3) Cargas:
+- La recuperación de conexión espera a que no haya campos activos antes de redibujar la pantalla.
+- Se mantiene la protección para posponer actualizaciones remotas durante la edición y el guardado de Caja/Horas.
+
+No se modificaron datos ni reglas de Firebase. Pruebas: `npm test`.
