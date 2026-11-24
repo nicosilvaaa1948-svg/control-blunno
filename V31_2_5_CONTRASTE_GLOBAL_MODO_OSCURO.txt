@@ -1,0 +1,16 @@
+BLUNNO V31.2.5 · 2026-11-24 · Build 2026.11.24.69
+
+Objetivo: corregir superficies claras que mantenían texto blanco o colores de bajo contraste en el tema oscuro y unificar la lectura en toda la aplicación.
+
+Cambios:
+- Cierre mensual: tarjetas de revisión, estado del período, resumen de totales y preflight con fondos oscuros y tipografía legible.
+- Filtros, botones secundarios, planillas, comparativas y ventanas con colores coherentes.
+- Gastos, proveedores y facturas: tarjetas móviles, filtros, importes y metadatos adaptados al modo oscuro.
+- Personal y liquidaciones: importes generados, importes a cobrar, desgloses, deducciones y totales con contraste reforzado.
+- Archivos, períodos, recordatorios y asistentes: superficies auxiliares y etiquetas adaptadas.
+- Las marcas semánticas de domingo, feriado, franco, alerta, éxito y error conservan su significado con paletas oscuras legibles.
+
+Seguridad:
+- Solo ajustes de estilos y metadatos de versión.
+- No se modifican lógica de negocio, registros, reglas ni configuración de Firebase.
+- Se actualiza el parámetro de caché de styles.css para forzar la carga de los nuevos estilos.

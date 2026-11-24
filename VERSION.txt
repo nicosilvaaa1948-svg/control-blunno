@@ -1,0 +1,5 @@
+BLUNNO V31.2.5 · CONTRASTE GLOBAL DEL MODO OSCURO
+Build: 2026.11.24.69
+Base: BLUNNO V31.2.4 · build 2026.11.24.68
+
+Mejora visual: unificación del contraste de modo oscuro en Cierre Mensual, Inicio, Comparativas, Gastos, Proveedores, Facturas, Horas, Personal, Liquidaciones, Archivos, Recordatorios, modales, filtros y vistas móviles. No modifica la lógica de negocio, los datos ni la configuración de Firebase.

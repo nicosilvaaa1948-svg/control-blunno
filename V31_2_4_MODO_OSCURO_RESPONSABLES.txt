@@ -1,0 +1,13 @@
+BLUNNO V31.2.4 · 2026-11-24 · Build 2026.11.24.68
+
+CAMBIOS
+1. Tema oscuro: corrección de contraste para Caja Diaria, tarjetas, matrices, controles, totales y vista móvil. Se ampliaron correcciones a superficies secundarias en otros sectores.
+2. Responsables: botón de configuración junto al selector superior. Permite agregar, editar y guardar nombres, y eliminar responsables de la lista activa.
+3. La eliminación se envía a Papelera para permitir restauración. Los movimientos, cierres y auditorías anteriores conservan el nombre registrado originalmente.
+4. El catálogo se guarda localmente y se sincroniza mediante la colección compartida de responsables. Las instalaciones actualizadas desde V31.2.3 migran el catálogo existente.
+
+VALIDACIÓN
+- npm test: 20/20 pruebas aprobadas.
+- node --check: módulos externos y scripts integrados aprobados.
+- config.js, firebase.js, firebase.rules y storage.rules conservan sus huellas originales.
+- No se realizaron escrituras en Firebase productivo. La sincronización real entre dispositivos debe verificarse una vez publicada la versión.
